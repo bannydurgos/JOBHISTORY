@@ -15,6 +15,36 @@
 
 <div id="message" style="margin-bottom: 0.5rem;"></div>
 
+<!-- Gap modal -->
+<div id="gapModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:white; border-radius:10px; padding:1.25rem; width:380px; max-width:95vw; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+    <div style="font-weight:600; font-size:14px; margin-bottom:0.75rem; color:#333;">Add Unemployment Period</div>
+    <div id="gapModalInfo" style="font-size:12px; color:#888; margin-bottom:1rem;"></div>
+    <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+      <label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;">
+        <input type="radio" name="gapOption" value="entire" checked onchange="toggleGapPartial(false)" /> Entire gap
+      </label>
+      <label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer; margin-left:1rem;">
+        <input type="radio" name="gapOption" value="partial" onchange="toggleGapPartial(true)" /> Part of gap
+      </label>
+    </div>
+    <div id="gapPartialDates" style="display:none; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:1rem;">
+      <div>
+        <label style="font-size:11px; color:#666; display:block; margin-bottom:3px;">Start date</label>
+        <input type="date" id="gapStartInput" style="width:100%; padding:5px 8px; border:1px solid #ddd; border-radius:6px; font-size:12px;" />
+      </div>
+      <div>
+        <label style="font-size:11px; color:#666; display:block; margin-bottom:3px;">End date</label>
+        <input type="date" id="gapEndInput" style="width:100%; padding:5px 8px; border:1px solid #ddd; border-radius:6px; font-size:12px;" />
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button onclick="closeGapModal()" style="padding:6px 14px; font-size:13px; border:1px solid #ddd; background:white; border-radius:8px; cursor:pointer;">Cancel</button>
+      <button onclick="confirmGapModal()" style="padding:6px 14px; font-size:13px; background:#7F77DD; border:1px solid #7F77DD; color:white; border-radius:8px; cursor:pointer; font-weight:500;">Add Unemployment</button>
+    </div>
+  </div>
+</div>
+
 <div style="background: #f0f0f0; border-radius: 8px; padding: 0.6rem 0.75rem; margin-bottom: 0.75rem;">
   <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 6px; align-items: center;">
     <input type="text" id="title" placeholder="Job title or show name" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
@@ -78,7 +108,20 @@ function loadData() {
   return stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(defaultData));
 }
 
+function sortData() {
+  Object.keys(data).forEach(year => {
+    data[year].sort((a, b) => {
+      const aStr = a.dates.split('-')[0].trim();
+      const bStr = b.dates.split('-')[0].trim();
+      const aDate = parseDate(aStr) || new Date(0);
+      const bDate = parseDate(bStr) || new Date(0);
+      return aDate - bDate;
+    });
+  });
+}
+
 function saveData() {
+  sortData();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
@@ -135,7 +178,9 @@ function buildGapMap() {
       const gapDays = Math.floor((nextStart - currentEnd) / (1000 * 60 * 60 * 24));
       if (gapDays > 1) {
         const key = `${current.year}-${current.idx}`;
-        gapMap[key] = { days: gapDays, nextTitle: next.title };
+        const gapStart = new Date(currentEnd.getTime() + 86400000);
+        const gapEnd = new Date(nextStart.getTime() - 86400000);
+        gapMap[key] = { days: gapDays, nextTitle: next.title, gapStart, gapEnd };
       }
     }
   }
@@ -238,8 +283,12 @@ function renderTimeline() {
         yearSection.appendChild(entryDiv);
         if (gap && activeFilter === 'all' && !isEditing) {
           const gapDiv = document.createElement('div');
-          gapDiv.style.cssText = 'display: flex; gap: 6px; margin-bottom: 0.2rem; padding: 3px 8px; background: #fffbf0; border-radius: 6px; font-size: 11px; color: #d97706; margin-left: 15px;';
+          gapDiv.style.cssText = 'display: flex; gap: 6px; margin-bottom: 0.2rem; padding: 3px 8px; background: #fffbf0; border-radius: 6px; font-size: 11px; color: #d97706; margin-left: 15px; cursor: pointer;';
+          gapDiv.title = 'Click to add unemployment period';
           gapDiv.innerHTML = `<div style="width: 4px; height: 4px; border-radius: 50%; background: #d97706; flex-shrink: 0; margin-top: 4px;"></div><span><strong>Gap:</strong> ${gap.days} day${gap.days === 1 ? '' : 's'} until ${gap.nextTitle}</span>`;
+          gapDiv.addEventListener('mouseenter', () => { gapDiv.style.background = '#fff3d0'; });
+          gapDiv.addEventListener('mouseleave', () => { gapDiv.style.background = '#fffbf0'; });
+          gapDiv.addEventListener('click', () => openGapModal(gap));
           yearSection.appendChild(gapDiv);
         }
       });
@@ -382,6 +431,68 @@ document.getElementById('importFile').addEventListener('change', (e) => {
   };
   reader.readAsText(file);
   e.target.value = '';
+});
+
+let currentGap = null;
+
+function openGapModal(gap) {
+  currentGap = gap;
+  const modal = document.getElementById('gapModal');
+  modal.style.display = 'flex';
+  document.querySelector('input[name="gapOption"][value="entire"]').checked = true;
+  toggleGapPartial(false);
+  const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  document.getElementById('gapModalInfo').textContent = `${fmt(gap.gapStart)} — ${fmt(gap.gapEnd)} (${gap.days} days)`;
+  document.getElementById('gapStartInput').value = dateObjToString(gap.gapStart);
+  document.getElementById('gapEndInput').value = dateObjToString(gap.gapEnd);
+  document.getElementById('gapStartInput').min = dateObjToString(gap.gapStart);
+  document.getElementById('gapStartInput').max = dateObjToString(gap.gapEnd);
+  document.getElementById('gapEndInput').min = dateObjToString(gap.gapStart);
+  document.getElementById('gapEndInput').max = dateObjToString(gap.gapEnd);
+}
+
+function closeGapModal() {
+  document.getElementById('gapModal').style.display = 'none';
+  currentGap = null;
+}
+
+function toggleGapPartial(show) {
+  const el = document.getElementById('gapPartialDates');
+  el.style.display = show ? 'grid' : 'none';
+}
+
+function confirmGapModal() {
+  if (!currentGap) return;
+  const isPartial = document.querySelector('input[name="gapOption"]:checked').value === 'partial';
+  let startDate, endDate;
+  if (isPartial) {
+    const s = document.getElementById('gapStartInput').value;
+    const e = document.getElementById('gapEndInput').value;
+    if (!s || !e) { showMessage('Please fill in both dates', 'error'); return; }
+    startDate = new Date(s + 'T00:00:00');
+    endDate = new Date(e + 'T00:00:00');
+    if (startDate > endDate) { showMessage('Start date must be before end date', 'error'); return; }
+    if (startDate < currentGap.gapStart || endDate > currentGap.gapEnd) {
+      showMessage('Dates must fall within the gap', 'error'); return;
+    }
+  } else {
+    startDate = currentGap.gapStart;
+    endDate = currentGap.gapEnd;
+  }
+  const [sy, sm, sd] = [startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate()];
+  const [ey, em, ed] = [endDate.getFullYear(), endDate.getMonth() + 1, endDate.getDate()];
+  const dateStr = `${String(sm).padStart(2,'0')}/${String(sd).padStart(2,'0')}/${sy} - ${String(em).padStart(2,'0')}/${String(ed).padStart(2,'0')}/${ey}`;
+  const year = String(sy);
+  if (!data[year]) data[year] = [];
+  data[year].push({ title: 'Unemployed', dates: dateStr, category: 'unemployed' });
+  saveData();
+  closeGapModal();
+  renderTimeline();
+  showMessage('Unemployment period added', 'success', true);
+}
+
+document.getElementById('gapModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('gapModal')) closeGapModal();
 });
 
 renderFilters();
