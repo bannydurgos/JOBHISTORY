@@ -1,15 +1,28 @@
-<div style="padding: 1rem 0;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Career Timeline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background: #f5f5f5; padding: 2rem; line-height: 1.6; }
+    input, select, button { font-family: inherit; font-size: inherit; }
+  </style>
+</head>
+<body>
+<div style="padding: 1rem 0; max-width: 900px; margin: 0 auto;">
 <h2 class="sr-only">Career timeline with concurrent job support</h2>
 
 <div id="message" style="margin-bottom: 1rem;"></div>
 
-<div style="background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+<div style="background: #f0f0f0; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
   <p style="font-size: 14px; font-weight: 500; margin: 0 0 1rem 0;">Add new employment</p>
   <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 8px; align-items: end; margin-bottom: 12px;">
-    <input type="text" id="title" placeholder="Job title or show name" style="padding: 8px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 13px;" />
-    <input type="date" id="startDate" style="padding: 8px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 13px;" />
-    <input type="date" id="endDate" style="padding: 8px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 13px;" />
-    <select id="category" style="padding: 8px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 13px;">
+    <input type="text" id="title" placeholder="Job title or show name" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;" />
+    <input type="date" id="startDate" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;" />
+    <input type="date" id="endDate" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;" />
+    <select id="category" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;">
       <option value="broadway">Broadway & Theatre</option>
       <option value="education">Education</option>
       <option value="healthcare">Healthcare</option>
@@ -18,8 +31,8 @@
       <option value="other">Other</option>
     </select>
     <div style="display: flex; gap: 8px;">
-      <button id="addBtn" style="padding: 8px 12px; background: var(--color-background-info); border: 0.5px solid var(--color-border-info); color: var(--color-text-info); border-radius: var(--border-radius-md); cursor: pointer; font-size: 13px; font-weight: 500;">Add</button>
-      <button id="resetBtn" style="padding: 8px 12px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); border-radius: var(--border-radius-md); cursor: pointer; font-size: 13px;">Reset</button>
+      <button id="addBtn" style="padding: 8px 12px; background: #4CAF50; border: 1px solid #4CAF50; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;">Add</button>
+      <button id="resetBtn" style="padding: 8px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">Reset</button>
     </div>
   </div>
 </div>
@@ -28,7 +41,7 @@
 
 <div style="display: flex; flex-direction: column; gap: 1.5rem;" id="timeline"></div>
 
-<div style="display: flex; flex-wrap: wrap; gap: 16px; margin-top: 1.5rem; padding-top: 1rem; border-top: 0.5px solid var(--color-border-tertiary); font-size: 12px;">
+<div style="display: flex; flex-wrap: wrap; gap: 16px; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #ddd; font-size: 12px;">
   <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #D4537E;"></div> <span>Broadway & Theatre</span></div>
   <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #378ADD;"></div> <span>Education</span></div>
   <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #1D9E75;"></div> <span>Healthcare</span></div>
@@ -69,9 +82,23 @@ function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-function dateStringToObj(dateStr) {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  return new Date(year, month - 1, day);
+function parseDate(dateStr) {
+  if (!dateStr || dateStr === '-' || dateStr.includes('Current')) return null;
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  let cleanStr = dateStr.trim();
+  const monthIdx = monthNames.findIndex(m => cleanStr.toLowerCase().includes(m.toLowerCase()));
+  if (monthIdx !== -1) {
+    const yearMatch = cleanStr.match(/\d{4}/);
+    if (yearMatch) return new Date(parseInt(yearMatch[0]), monthIdx, 1);
+  }
+  const parts = cleanStr.split('/');
+  if (parts.length >= 2) {
+    const month = parseInt(parts[0]) - 1;
+    const day = parseInt(parts[1]) || 1;
+    const year = parseInt(parts[2]) || new Date().getFullYear();
+    return new Date(year, month, day);
+  }
+  return null;
 }
 
 function dateObjToString(dateObj) {
@@ -81,84 +108,37 @@ function dateObjToString(dateObj) {
   return `${year}-${month}-${day}`;
 }
 
-function parseDate(dateStr) {
-  if (!dateStr || dateStr === '-' || dateStr.includes('Current')) return null;
-  
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  let cleanStr = dateStr.trim();
-  
-  const monthIdx = monthNames.findIndex(m => cleanStr.toLowerCase().includes(m.toLowerCase()));
-  if (monthIdx !== -1) {
-    const yearMatch = cleanStr.match(/\d{4}/);
-    if (yearMatch) {
-      return new Date(parseInt(yearMatch[0]), monthIdx, 1);
-    }
-  }
-  
-  const parts = cleanStr.split('/');
-  if (parts.length >= 2) {
-    const month = parseInt(parts[0]) - 1;
-    const day = parseInt(parts[1]) || 1;
-    const year = parseInt(parts[2]) || new Date().getFullYear();
-    return new Date(year, month, day);
-  }
-  
-  return null;
-}
-
-function formatDisplayDate(month, day, year) {
-  return `${month}/${day}/${year}`;
-}
-
 function buildGapMap() {
   const allEntries = [];
-  
   Object.keys(data).forEach(year => {
     data[year].forEach((entry, idx) => {
       const dateParts = entry.dates.split('-').map(d => d.trim());
       const startDate = parseDate(dateParts[0]);
       const endDate = dateParts.length > 1 && dateParts[1] !== '' ? parseDate(dateParts[1]) : null;
-      
       if (startDate || endDate) {
-        allEntries.push({
-          year,
-          idx,
-          title: entry.title,
-          startDate: startDate,
-          endDate: endDate,
-          category: entry.category
-        });
+        allEntries.push({ year, idx, title: entry.title, startDate, endDate, category: entry.category });
       }
     });
   });
-  
   allEntries.sort((a, b) => {
     const aStart = a.startDate || a.endDate || new Date(0);
     const bStart = b.startDate || b.endDate || new Date(0);
     return aStart - bStart;
   });
-  
   const gapMap = {};
   for (let i = 0; i < allEntries.length - 1; i++) {
     const current = allEntries[i];
     const next = allEntries[i + 1];
-    
     const currentEnd = current.endDate || current.startDate || new Date(0);
     const nextStart = next.startDate || next.endDate || new Date(9999, 0, 1);
-    
     if (currentEnd && nextStart && currentEnd < nextStart) {
       const gapDays = Math.floor((nextStart - currentEnd) / (1000 * 60 * 60 * 24));
-      
       if (gapDays > 1) {
         const key = `${current.year}-${current.idx}`;
-        gapMap[key] = {
-          days: gapDays,
-          nextTitle: next.title
-        };
+        gapMap[key] = { days: gapDays, nextTitle: next.title };
       }
     }
   }
-  
   return gapMap;
 }
 
@@ -171,7 +151,7 @@ function renderFilters() {
     const btn = document.createElement('button');
     btn.textContent = labels[cat];
     btn.className = cat === 'all' ? 'active' : '';
-    btn.style.cssText = `padding: 6px 12px; border: 0.5px solid var(--color-border-${cat === activeFilter ? 'primary' : 'secondary'}); background: var(--color-background-primary); border-radius: var(--border-radius-md); cursor: pointer; font-size: 13px; font-weight: ${cat === activeFilter ? '500' : '400'}; transition: all 0.2s;`;
+    btn.style.cssText = `padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: ${cat === activeFilter ? '500' : '400'};`;
     btn.addEventListener('click', () => {
       document.querySelectorAll('#filters button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
@@ -186,40 +166,34 @@ function renderTimeline() {
   const timeline = document.getElementById('timeline');
   timeline.innerHTML = '';
   const gapMap = buildGapMap();
-  
   Object.keys(data).sort((a, b) => a - b).forEach(year => {
     const yearEntries = data[year].filter(entry => activeFilter === 'all' || entry.category === activeFilter);
     if (yearEntries.length > 0) {
       const yearSection = document.createElement('div');
       const yearHeader = document.createElement('div');
-      yearHeader.style.cssText = 'font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;';
+      yearHeader.style.cssText = 'font-size: 13px; font-weight: 500; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;';
       yearHeader.textContent = year;
       yearSection.appendChild(yearHeader);
-      
       yearEntries.forEach((entry, idx) => {
         const isEditing = editingEntry && editingEntry.year === year && editingEntry.index === idx;
         const gapKey = `${year}-${idx}`;
         const gap = gapMap[gapKey];
-        
         const entryDiv = document.createElement('div');
         entryDiv.style.cssText = 'display: flex; gap: 12px; margin-bottom: 0.75rem;';
         const dot = document.createElement('div');
         dot.style.cssText = `width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; background: ${colors[entry.category] || colors.other};`;
-        
         const content = document.createElement('div');
         content.style.cssText = 'flex: 1;';
-        
         if (isEditing) {
           const dateParts = entry.dates.split('-').map(d => d.trim());
           const startDate = parseDate(dateParts[0]);
           const endDate = dateParts.length > 1 && dateParts[1] !== '' ? parseDate(dateParts[1]) : null;
-          
           content.innerHTML = `
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px;">
-              <input type="text" id="edit-title-${idx}" value="${entry.title}" style="padding: 8px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 13px;" placeholder="Title" />
-              <input type="date" id="edit-start-${idx}" value="${startDate ? dateObjToString(startDate) : ''}" style="padding: 8px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 13px;" />
-              <input type="date" id="edit-end-${idx}" value="${endDate ? dateObjToString(endDate) : ''}" style="padding: 8px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 13px;" />
-              <select id="edit-category-${idx}" style="padding: 8px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 13px;">
+              <input type="text" id="edit-title-${idx}" value="${entry.title}" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;" />
+              <input type="date" id="edit-start-${idx}" value="${startDate ? dateObjToString(startDate) : ''}" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;" />
+              <input type="date" id="edit-end-${idx}" value="${endDate ? dateObjToString(endDate) : ''}" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;" />
+              <select id="edit-category-${idx}" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;">
                 <option value="broadway" ${entry.category === 'broadway' ? 'selected' : ''}>Broadway & Theatre</option>
                 <option value="education" ${entry.category === 'education' ? 'selected' : ''}>Education</option>
                 <option value="healthcare" ${entry.category === 'healthcare' ? 'selected' : ''}>Healthcare</option>
@@ -228,8 +202,8 @@ function renderTimeline() {
                 <option value="other" ${entry.category === 'other' ? 'selected' : ''}>Other</option>
               </select>
               <div style="display: flex; gap: 8px;">
-                <button id="save-${idx}" style="padding: 8px 12px; background: var(--color-background-success); border: 0.5px solid var(--color-border-success); color: var(--color-text-success); border-radius: var(--border-radius-md); cursor: pointer; font-size: 13px; font-weight: 500;">Save</button>
-                <button id="cancel-${idx}" style="padding: 8px 12px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); border-radius: var(--border-radius-md); cursor: pointer; font-size: 13px;">Cancel</button>
+                <button id="save-${idx}" style="padding: 8px 12px; background: #4CAF50; border: 1px solid #4CAF50; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;">Save</button>
+                <button id="cancel-${idx}" style="padding: 8px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">Cancel</button>
               </div>
             </div>
           `;
@@ -241,41 +215,35 @@ function renderTimeline() {
           const header = document.createElement('div');
           header.style.cssText = 'display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 2px;';
           const title = document.createElement('p');
-          title.style.cssText = 'font-size: 14px; color: var(--color-text-primary); margin: 0; flex: 1;';
+          title.style.cssText = 'font-size: 14px; color: #333; margin: 0; flex: 1;';
           title.textContent = entry.title;
           const buttons = document.createElement('div');
           buttons.style.cssText = 'display: flex; gap: 6px;';
-          
           const editBtn = document.createElement('button');
           editBtn.textContent = 'Edit';
-          editBtn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 0.5px solid var(--color-border-secondary); color: var(--color-text-secondary); background: transparent; border-radius: var(--border-radius-md); cursor: pointer;';
+          editBtn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 1px solid #ddd; color: #666; background: transparent; border-radius: 8px; cursor: pointer;';
           editBtn.addEventListener('click', () => startEdit(year, idx));
-          
           const deleteBtn = document.createElement('button');
           deleteBtn.textContent = 'Delete';
-          deleteBtn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 0.5px solid var(--color-border-danger); color: var(--color-text-danger); background: transparent; border-radius: var(--border-radius-md); cursor: pointer;';
+          deleteBtn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 1px solid #ffcccc; color: #c33; background: transparent; border-radius: 8px; cursor: pointer;';
           deleteBtn.addEventListener('click', () => deleteEntry(year, idx));
-          
           buttons.appendChild(editBtn);
           buttons.appendChild(deleteBtn);
           header.appendChild(title);
           header.appendChild(buttons);
           content.appendChild(header);
-          
           const dates = document.createElement('p');
-          dates.style.cssText = 'font-size: 12px; color: var(--color-text-secondary); margin: 0;';
+          dates.style.cssText = 'font-size: 12px; color: #999; margin: 0;';
           dates.textContent = entry.dates;
           content.appendChild(dates);
         }
-        
         entryDiv.appendChild(dot);
         entryDiv.appendChild(content);
         yearSection.appendChild(entryDiv);
-        
         if (gap && activeFilter === 'all' && !isEditing) {
           const gapDiv = document.createElement('div');
-          gapDiv.style.cssText = 'display: flex; gap: 12px; margin-bottom: 0.75rem; padding: 8px 10px; background: var(--color-background-warning); border-radius: var(--border-radius-md); font-size: 12px; color: var(--color-text-warning); margin-left: 20px;';
-          gapDiv.innerHTML = `<div style="width: 4px; height: 4px; border-radius: 50%; background: var(--color-text-warning); flex-shrink: 0; margin-top: 4px;"></div><span><strong>Gap:</strong> ${gap.days} day${gap.days === 1 ? '' : 's'} until ${gap.nextTitle}</span>`;
+          gapDiv.style.cssText = 'display: flex; gap: 12px; margin-bottom: 0.75rem; padding: 8px 10px; background: #fffbf0; border-radius: 8px; font-size: 12px; color: #d97706; margin-left: 20px;';
+          gapDiv.innerHTML = `<div style="width: 4px; height: 4px; border-radius: 50%; background: #d97706; flex-shrink: 0; margin-top: 4px;"></div><span><strong>Gap:</strong> ${gap.days} day${gap.days === 1 ? '' : 's'} until ${gap.nextTitle}</span>`;
           yearSection.appendChild(gapDiv);
         }
       });
@@ -299,18 +267,15 @@ function saveEdit(year, index) {
   const newStartDate = document.getElementById(`edit-start-${index}`).value;
   const newEndDate = document.getElementById(`edit-end-${index}`).value;
   const newCategory = document.getElementById(`edit-category-${index}`).value;
-  
   if (!newTitle || (!newStartDate && !newEndDate)) {
     showMessage('Please fill in title and at least one date', 'error');
     return;
   }
-  
   let dateStr = '';
   if (newStartDate) {
     const [year, month, day] = newStartDate.split('-');
     dateStr = `${month}/${day}/${year}`;
   }
-  
   if (newEndDate) {
     const [year, month, day] = newEndDate.split('-');
     if (dateStr) {
@@ -321,7 +286,6 @@ function saveEdit(year, index) {
   } else {
     dateStr += ' -';
   }
-  
   data[year][index] = { title: newTitle, dates: dateStr, category: newCategory };
   saveData();
   editingEntry = null;
@@ -339,7 +303,7 @@ function deleteEntry(year, index) {
 
 function showMessage(text, type) {
   const msgDiv = document.getElementById('message');
-  msgDiv.style.cssText = `padding: 8px 10px; border-radius: var(--border-radius-md); font-size: 13px; background: var(--color-background-${type === 'error' ? 'danger' : 'success'}); color: var(--color-text-${type === 'error' ? 'danger' : 'success'});`;
+  msgDiv.style.cssText = `padding: 8px 10px; border-radius: 8px; font-size: 13px; background: ${type === 'error' ? '#ffcccc' : '#ccffcc'}; color: ${type === 'error' ? '#c33' : '#3c3'};`;
   msgDiv.textContent = text;
   setTimeout(() => { msgDiv.textContent = ''; msgDiv.style.cssText = ''; }, 3000);
 }
@@ -349,15 +313,12 @@ document.getElementById('addBtn').addEventListener('click', () => {
   const startDateVal = document.getElementById('startDate').value;
   const endDateVal = document.getElementById('endDate').value;
   const category = document.getElementById('category').value;
-  
   if (!title || (!startDateVal && !endDateVal)) {
     showMessage('Please fill in title and at least one date', 'error');
     return;
   }
-  
   let year = '';
   let dateStr = '';
-  
   if (startDateVal) {
     const [startYear, startMonth, startDay] = startDateVal.split('-');
     year = startYear;
@@ -367,7 +328,6 @@ document.getElementById('addBtn').addEventListener('click', () => {
     year = endYear;
     dateStr = `- ${endMonth}/${endDay}/${endYear}`;
   }
-  
   if (endDateVal && startDateVal) {
     const [endYear, endMonth, endDay] = endDateVal.split('-');
     dateStr += ` - ${endMonth}/${endDay}/${endYear}`;
@@ -377,11 +337,9 @@ document.getElementById('addBtn').addEventListener('click', () => {
   } else if (startDateVal) {
     dateStr += ' -';
   }
-  
   if (!data[year]) data[year] = [];
   data[year].push({ title, dates: dateStr, category });
   saveData();
-  
   document.getElementById('title').value = '';
   document.getElementById('startDate').value = '';
   document.getElementById('endDate').value = '';
@@ -403,3 +361,5 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 renderFilters();
 renderTimeline();
 </script>
+</body>
+</html>
