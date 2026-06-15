@@ -67,16 +67,16 @@
   </div>
 </div>
 
-<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0.75rem;" id="filters"></div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0.75rem; justify-content: center;" id="filters"></div>
 
-<div style="display: flex; flex-direction: column; gap: 0.75rem;" id="timeline"></div>
+<div style="display: flex; flex-direction: column; gap: 0.35rem;" id="timeline"></div>
 
-<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 0.75rem; padding-top: 0.6rem; border-top: 1px solid #ddd; font-size: 11px;">
-  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 7px; height: 7px; border-radius: 50%; background: #D4537E;"></div> <span>Broadway & Theatre</span></div>
-  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 7px; height: 7px; border-radius: 50%; background: #378ADD;"></div> <span>Education</span></div>
-  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 7px; height: 7px; border-radius: 50%; background: #1D9E75;"></div> <span>Healthcare</span></div>
-  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 7px; height: 7px; border-radius: 50%; background: #BA7517;"></div> <span>Fitness</span></div>
-  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 7px; height: 7px; border-radius: 50%; background: #7F77DD;"></div> <span>Unemployed</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 0.75rem; padding-top: 0.6rem; border-top: 1px solid #ddd; font-size: 11px; justify-content: center;">
+  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #D4537E;"></div> <span>Broadway & Theatre</span></div>
+  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #378ADD;"></div> <span>Education</span></div>
+  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #1D9E75;"></div> <span>Healthcare</span></div>
+  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #BA7517;"></div> <span>Fitness</span></div>
+  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #7F77DD;"></div> <span>Unemployed</span></div>
 </div>
 </div>
 
@@ -100,6 +100,7 @@ const defaultData = {
 let data = loadData();
 let activeFilter = 'all';
 let editingEntry = null;
+let collapsedYears = new Set();
 
 const colors = { broadway: '#D4537E', education: '#378ADD', healthcare: '#1D9E75', fitness: '#BA7517', unemployed: '#7F77DD', other: '#888780' };
 
@@ -211,89 +212,153 @@ function renderTimeline() {
   const timeline = document.getElementById('timeline');
   timeline.innerHTML = '';
   const gapMap = buildGapMap();
-  Object.keys(data).sort((a, b) => a - b).forEach(year => {
-    const yearEntries = data[year].filter(entry => activeFilter === 'all' || entry.category === activeFilter);
-    if (yearEntries.length > 0) {
-      const yearSection = document.createElement('div');
-      const yearHeader = document.createElement('div');
-      yearHeader.style.cssText = 'font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem;';
-      yearHeader.textContent = year;
-      yearSection.appendChild(yearHeader);
-      yearEntries.forEach((entry, idx) => {
-        const isEditing = editingEntry && editingEntry.year === year && editingEntry.index === idx;
-        const gapKey = `${year}-${idx}`;
-        const gap = gapMap[gapKey];
-        const entryDiv = document.createElement('div');
-        entryDiv.style.cssText = 'display: flex; gap: 8px; margin-bottom: 0.2rem;';
-        const dot = document.createElement('div');
-        dot.style.cssText = `width: 7px; height: 7px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; background: ${colors[entry.category] || colors.other};`;
-        const content = document.createElement('div');
-        content.style.cssText = 'flex: 1;';
-        if (isEditing) {
-          const dateParts = entry.dates.split('-').map(d => d.trim());
-          const startDate = parseDate(dateParts[0]);
-          const endDate = dateParts.length > 1 && dateParts[1] !== '' ? parseDate(dateParts[1]) : null;
-          content.innerHTML = `
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 6px; margin-bottom: 4px;">
-              <input type="text" id="edit-title-${idx}" value="${entry.title}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
-              <input type="date" id="edit-start-${idx}" value="${startDate ? dateObjToString(startDate) : ''}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
-              <input type="date" id="edit-end-${idx}" value="${endDate ? dateObjToString(endDate) : ''}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
-              <select id="edit-category-${idx}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;">
-                <option value="broadway" ${entry.category === 'broadway' ? 'selected' : ''}>Broadway & Theatre</option>
-                <option value="education" ${entry.category === 'education' ? 'selected' : ''}>Education</option>
-                <option value="healthcare" ${entry.category === 'healthcare' ? 'selected' : ''}>Healthcare</option>
-                <option value="fitness" ${entry.category === 'fitness' ? 'selected' : ''}>Fitness</option>
-                <option value="unemployed" ${entry.category === 'unemployed' ? 'selected' : ''}>Unemployed</option>
-                <option value="other" ${entry.category === 'other' ? 'selected' : ''}>Other</option>
-              </select>
-              <div style="display: flex; gap: 5px;">
-                <button id="save-${idx}" style="padding: 5px 10px; background: #4CAF50; border: 1px solid #4CAF50; color: white; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">Save</button>
-                <button id="cancel-${idx}" style="padding: 5px 10px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 12px;">Cancel</button>
-              </div>
-            </div>
-          `;
-          setTimeout(() => {
-            document.getElementById(`save-${idx}`)?.addEventListener('click', () => saveEdit(year, idx));
-            document.getElementById(`cancel-${idx}`)?.addEventListener('click', cancelEdit);
-          }, 0);
-        } else {
-          const header = document.createElement('div');
-          header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 8px;';
-          const title = document.createElement('p');
-          title.style.cssText = 'font-size: 13px; color: #333; margin: 0; flex: 1;';
-          title.innerHTML = `${entry.title} <span style="font-size:11px;color:#aaa;">${entry.dates}</span>`;
-          const buttons = document.createElement('div');
-          buttons.style.cssText = 'display: flex; gap: 6px;';
-          const editBtn = document.createElement('button');
-          editBtn.textContent = 'Edit';
-          editBtn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 1px solid #ddd; color: #666; background: transparent; border-radius: 8px; cursor: pointer;';
-          editBtn.addEventListener('click', () => startEdit(year, idx));
-          const deleteBtn = document.createElement('button');
-          deleteBtn.textContent = 'Delete';
-          deleteBtn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 1px solid #ffcccc; color: #c33; background: transparent; border-radius: 8px; cursor: pointer;';
-          deleteBtn.addEventListener('click', () => deleteEntry(year, idx));
-          buttons.appendChild(editBtn);
-          buttons.appendChild(deleteBtn);
-          header.appendChild(title);
-          header.appendChild(buttons);
-          content.appendChild(header);
-        }
-        entryDiv.appendChild(dot);
-        entryDiv.appendChild(content);
-        yearSection.appendChild(entryDiv);
-        if (gap && activeFilter === 'all' && !isEditing) {
-          const gapDiv = document.createElement('div');
-          gapDiv.style.cssText = 'display: flex; gap: 6px; margin-bottom: 0.2rem; padding: 3px 8px; background: #fffbf0; border-radius: 6px; font-size: 11px; color: #d97706; margin-left: 15px; cursor: pointer;';
-          gapDiv.title = 'Click to add unemployment period';
-          gapDiv.innerHTML = `<div style="width: 4px; height: 4px; border-radius: 50%; background: #d97706; flex-shrink: 0; margin-top: 4px;"></div><span><strong>Gap:</strong> ${gap.days} day${gap.days === 1 ? '' : 's'} until ${gap.nextTitle}</span>`;
-          gapDiv.addEventListener('mouseenter', () => { gapDiv.style.background = '#fff3d0'; });
-          gapDiv.addEventListener('mouseleave', () => { gapDiv.style.background = '#fffbf0'; });
-          gapDiv.addEventListener('click', () => openGapModal(gap));
-          yearSection.appendChild(gapDiv);
+
+  // Collect all years, adding intermediate years for explicit multi-year spans
+  const allYears = new Set(Object.keys(data).map(Number));
+  Object.keys(data).forEach(yearKey => {
+    data[yearKey].forEach(entry => {
+      const dateParts = entry.dates.split('-').map(d => d.trim());
+      const startDate = parseDate(dateParts[0]);
+      const endStr = dateParts.length > 1 ? dateParts[1] : null;
+      const endDate = endStr && endStr !== '' ? parseDate(endStr) : null;
+      if (startDate && endDate) {
+        const sy = startDate.getFullYear();
+        const ey = endDate.getFullYear();
+        for (let y = sy + 1; y <= ey; y++) allYears.add(y);
+      }
+    });
+  });
+
+  Array.from(allYears).sort((a, b) => a - b).forEach(year => {
+    const yearStr = String(year);
+    const yearEntries = (data[yearStr] || []).filter(entry => activeFilter === 'all' || entry.category === activeFilter);
+
+    // Find entries from prior years with explicit end dates reaching into this year
+    const continuations = [];
+    Object.keys(data).forEach(dataYear => {
+      if (parseInt(dataYear) >= year) return;
+      data[dataYear].forEach(entry => {
+        if (activeFilter !== 'all' && entry.category !== activeFilter) return;
+        const dateParts = entry.dates.split('-').map(d => d.trim());
+        const startDate = parseDate(dateParts[0]);
+        const endStr = dateParts.length > 1 ? dateParts[1] : null;
+        const endDate = endStr && endStr !== '' ? parseDate(endStr) : null;
+        if (startDate && endDate && startDate.getFullYear() < year && endDate.getFullYear() >= year) {
+          continuations.push({ entry, fromYear: dataYear, endDate, isEnding: endDate.getFullYear() === year });
         }
       });
-      timeline.appendChild(yearSection);
-    }
+    });
+
+    if (yearEntries.length === 0 && continuations.length === 0) return;
+
+    const isCollapsed = collapsedYears.has(year);
+    const yearSection = document.createElement('div');
+    const yearHeader = document.createElement('div');
+    yearHeader.style.cssText = 'font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.2rem; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 5px;';
+    yearHeader.innerHTML = `<span style="font-size:9px;">${isCollapsed ? '▶' : '▼'}</span>${year}`;
+    yearHeader.addEventListener('click', () => {
+      if (collapsedYears.has(year)) collapsedYears.delete(year);
+      else collapsedYears.add(year);
+      renderTimeline();
+    });
+    yearSection.appendChild(yearHeader);
+    if (isCollapsed) { timeline.appendChild(yearSection); return; }
+
+    // Render continuation entries at the top of the year
+    continuations.forEach(({ entry, fromYear, endDate, isEnding }) => {
+      const color = colors[entry.category] || colors.other;
+      const entryDiv = document.createElement('div');
+      entryDiv.style.cssText = `display: flex; align-items: center; margin-bottom: 0.1rem; border-left: 3px ${isEnding ? 'solid' : 'dashed'} ${color}; background: ${color}${isEnding ? '18' : '0d'}; border-radius: 0 6px 6px 0; padding: 2px 8px; opacity: ${isEnding ? '1' : '0.75'};`;
+      const title = document.createElement('p');
+      title.style.cssText = `font-size: 13px; color: ${isEnding ? '#333' : '#666'}; margin: 0; font-style: italic; flex: 1;`;
+      const endLabel = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      title.innerHTML = isEnding
+        ? `${entry.title} <span style="font-size:11px;color:#aaa;">ends ${endLabel} · from ${fromYear}</span>`
+        : `${entry.title} <span style="font-size:11px;color:#bbb;">↑ cont. from ${fromYear}</span>`;
+      entryDiv.appendChild(title);
+      yearSection.appendChild(entryDiv);
+    });
+
+    yearEntries.forEach((entry, idx) => {
+      const isEditing = editingEntry && editingEntry.year === yearStr && editingEntry.index === idx;
+      const gapKey = `${yearStr}-${idx}`;
+      const gap = gapMap[gapKey];
+      const color = colors[entry.category] || colors.other;
+
+      // Check if this entry has an explicit end date in a future year
+      const dateParts = entry.dates.split('-').map(d => d.trim());
+      const entryStartDate = parseDate(dateParts[0]);
+      const entryEndStr = dateParts.length > 1 ? dateParts[1] : null;
+      const entryEndDate = entryEndStr && entryEndStr !== '' ? parseDate(entryEndStr) : null;
+      const spansYears = entryStartDate && entryEndDate && entryEndDate.getFullYear() > entryStartDate.getFullYear();
+
+      const entryDiv = document.createElement('div');
+      entryDiv.style.cssText = `display: flex; align-items: center; margin-bottom: 0.1rem; border-left: 3px solid ${color}; background: ${color}18; border-radius: 0 6px 6px 0; padding: 2px 8px;`;
+      const content = document.createElement('div');
+      content.style.cssText = 'flex: 1;';
+      if (isEditing) {
+        const startDate = parseDate(dateParts[0]);
+        const endDate = dateParts.length > 1 && dateParts[1] !== '' ? parseDate(dateParts[1]) : null;
+        content.innerHTML = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 6px; margin-bottom: 4px;">
+            <input type="text" id="edit-title-${idx}" value="${entry.title}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
+            <input type="date" id="edit-start-${idx}" value="${startDate ? dateObjToString(startDate) : ''}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
+            <input type="date" id="edit-end-${idx}" value="${endDate ? dateObjToString(endDate) : ''}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
+            <select id="edit-category-${idx}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;">
+              <option value="broadway" ${entry.category === 'broadway' ? 'selected' : ''}>Broadway & Theatre</option>
+              <option value="education" ${entry.category === 'education' ? 'selected' : ''}>Education</option>
+              <option value="healthcare" ${entry.category === 'healthcare' ? 'selected' : ''}>Healthcare</option>
+              <option value="fitness" ${entry.category === 'fitness' ? 'selected' : ''}>Fitness</option>
+              <option value="unemployed" ${entry.category === 'unemployed' ? 'selected' : ''}>Unemployed</option>
+              <option value="other" ${entry.category === 'other' ? 'selected' : ''}>Other</option>
+            </select>
+            <div style="display: flex; gap: 5px;">
+              <button id="save-${idx}" style="padding: 5px 10px; background: #4CAF50; border: 1px solid #4CAF50; color: white; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">Save</button>
+              <button id="cancel-${idx}" style="padding: 5px 10px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 12px;">Cancel</button>
+            </div>
+          </div>
+        `;
+        setTimeout(() => {
+          document.getElementById(`save-${idx}`)?.addEventListener('click', () => saveEdit(yearStr, idx));
+          document.getElementById(`cancel-${idx}`)?.addEventListener('click', cancelEdit);
+        }, 0);
+      } else {
+        const header = document.createElement('div');
+        header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 8px;';
+        const title = document.createElement('p');
+        title.style.cssText = 'font-size: 13px; color: #333; margin: 0; flex: 1;';
+        const spanBadge = spansYears ? ` <span style="font-size:10px; background:${color}30; color:${color}; border-radius:4px; padding:1px 5px; font-style:normal;">→ ${entryEndDate.getFullYear()}</span>` : '';
+        title.innerHTML = `${entry.title}${spanBadge} <span style="font-size:11px;color:#aaa;">${entry.dates}</span>`;
+        const buttons = document.createElement('div');
+        buttons.style.cssText = 'display: flex; gap: 6px;';
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 1px solid #ddd; color: #666; background: transparent; border-radius: 8px; cursor: pointer;';
+        editBtn.addEventListener('click', () => startEdit(yearStr, idx));
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 1px solid #ffcccc; color: #c33; background: transparent; border-radius: 8px; cursor: pointer;';
+        deleteBtn.addEventListener('click', () => deleteEntry(yearStr, idx));
+        buttons.appendChild(editBtn);
+        buttons.appendChild(deleteBtn);
+        header.appendChild(title);
+        header.appendChild(buttons);
+        content.appendChild(header);
+      }
+      entryDiv.appendChild(content);
+      yearSection.appendChild(entryDiv);
+      if (gap && activeFilter === 'all' && !isEditing) {
+        const gapDiv = document.createElement('div');
+        gapDiv.style.cssText = 'display: flex; gap: 6px; margin-bottom: 0.2rem; padding: 3px 8px; background: #fffbf0; border-radius: 6px; font-size: 11px; color: #d97706; margin-left: 3px; cursor: pointer;';
+        gapDiv.title = 'Click to add unemployment period';
+        gapDiv.innerHTML = `<div style="width: 4px; height: 4px; border-radius: 50%; background: #d97706; flex-shrink: 0; margin-top: 4px;"></div><span><strong>Gap:</strong> ${gap.days} day${gap.days === 1 ? '' : 's'} until ${gap.nextTitle}</span>`;
+        gapDiv.addEventListener('mouseenter', () => { gapDiv.style.background = '#fff3d0'; });
+        gapDiv.addEventListener('mouseleave', () => { gapDiv.style.background = '#fffbf0'; });
+        gapDiv.addEventListener('click', () => openGapModal(gap));
+        yearSection.appendChild(gapDiv);
+      }
+    });
+    timeline.appendChild(yearSection);
   });
 }
 
