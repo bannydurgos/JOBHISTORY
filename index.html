@@ -297,7 +297,8 @@ function deleteEntry(year, index) {
   showMessage('Entry deleted', 'success');
 }
 
-function showMessage(text, type) {
+function showMessage(text, type, force) {
+  if (type !== 'error' && !force) return;
   const msgDiv = document.getElementById('message');
   msgDiv.style.cssText = `padding: 8px 10px; border-radius: 8px; font-size: 13px; background: ${type === 'error' ? '#ffcccc' : '#ccffcc'}; color: ${type === 'error' ? '#c33' : '#3c3'};`;
   msgDiv.textContent = text;
@@ -374,7 +375,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
       saveData();
       editingEntry = null;
       renderTimeline();
-      showMessage('Data loaded successfully', 'success');
+      showMessage('Data loaded successfully', 'success', true);
     } catch {
       showMessage('Invalid file — could not load data', 'error');
     }
