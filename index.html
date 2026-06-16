@@ -101,7 +101,7 @@ const defaultData = {
 let data = loadData();
 let activeFilter = 'all';
 let editingEntry = null;
-let collapsedYears = new Set();
+let collapsedYears = new Set(JSON.parse(localStorage.getItem('collapsed_years') || '[]'));
 
 const colors = { broadway: '#D4537E', education: '#378ADD', healthcare: '#1D9E75', fitness: '#BA7517', unemployed: '#7F77DD', other: '#888780' };
 
@@ -284,6 +284,7 @@ function renderTimeline() {
     yearHeader.addEventListener('click', () => {
       if (collapsedYears.has(year)) collapsedYears.delete(year);
       else collapsedYears.add(year);
+      localStorage.setItem('collapsed_years', JSON.stringify([...collapsedYears]));
       renderTimeline();
     });
     yearSection.appendChild(yearHeader);
