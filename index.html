@@ -152,6 +152,29 @@ function dateObjToString(dateObj) {
   return `${year}-${month}-${day}`;
 }
 
+function formatDisplayDate(dateStr) {
+  if (!dateStr || dateStr === 'Current') return dateStr;
+  const trimmed = dateStr.trim();
+  if (!trimmed) return trimmed;
+  // Only reformat MM/DD/YYYY — leave "June 2021", "2016", etc. as-is
+  if (trimmed.split('/').length === 3) {
+    const parsed = parseDate(trimmed);
+    if (parsed) return parsed.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  }
+  return trimmed;
+}
+
+function formatDisplayDates(datesStr) {
+  const parts = datesStr.split('-').map(d => d.trim());
+  if (parts.length === 1) return formatDisplayDate(parts[0]);
+  const start = formatDisplayDate(parts[0]);
+  const end = parts[1] !== '' ? formatDisplayDate(parts[1]) : '';
+  if (start && end) return `${start} - ${end}`;
+  if (start) return `${start} -`;
+  if (end) return `- ${end}`;
+  return datesStr;
+}
+
 function buildGapMap() {
   const allEntries = [];
   Object.keys(data).forEach(year => {
@@ -265,16 +288,16 @@ function renderTimeline() {
     if (isCollapsed) { timeline.appendChild(yearSection); return; }
 
     // Render continuation entries at the top of the year
-    continuations.forEach(({ entry, fromYear, endDate, isEnding }) => {
+    continuations.forEach(({ entry, endDate, isEnding }) => {
       const color = colors[entry.category] || colors.other;
       const entryDiv = document.createElement('div');
       entryDiv.style.cssText = `display: flex; align-items: center; margin-bottom: 0.1rem; border-left: 3px ${isEnding ? 'solid' : 'dashed'} ${color}; background: ${color}${isEnding ? '18' : '0d'}; border-radius: 0 6px 6px 0; padding: 2px 8px; opacity: ${isEnding ? '1' : '0.75'};`;
       const title = document.createElement('p');
       title.style.cssText = `font-size: 13px; color: ${isEnding ? '#333' : '#666'}; margin: 0; font-style: italic; flex: 1;`;
-      const endLabel = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const endLabel = endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       title.innerHTML = isEnding
-        ? `${entry.title} <span style="font-size:11px;color:#aaa;">ends ${endLabel} · from ${fromYear}</span>`
-        : `${entry.title} <span style="font-size:11px;color:#bbb;">↑ cont. from ${fromYear}</span>`;
+        ? `${entry.title} <span style="font-size:11px;color:#aaa;">ends ${endLabel}</span>`
+        : entry.title;
       entryDiv.appendChild(title);
       yearSection.appendChild(entryDiv);
     });
@@ -327,8 +350,11 @@ function renderTimeline() {
         header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 8px;';
         const title = document.createElement('p');
         title.style.cssText = 'font-size: 13px; color: #333; margin: 0; flex: 1;';
-        const spanBadge = spansYears ? ` <span style="font-size:10px; background:${color}30; color:${color}; border-radius:4px; padding:1px 5px; font-style:normal;">→ ${entryEndDate.getFullYear()}</span>` : '';
-        title.innerHTML = `${entry.title}${spanBadge} <span style="font-size:11px;color:#aaa;">${entry.dates}</span>`;
+        const startLabel = entryStartDate ? entryStartDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : dateParts[0];
+        const dateDisplay = spansYears
+          ? `<span style="font-size:11px;color:#aaa;">starts ${startLabel}</span>`
+          : `<span style="font-size:11px;color:#aaa;">${formatDisplayDates(entry.dates)}</span>`;
+        title.innerHTML = `${entry.title} ${dateDisplay}`;
         const buttons = document.createElement('div');
         buttons.style.cssText = 'display: flex; gap: 6px;';
         const editBtn = document.createElement('button');
