@@ -688,13 +688,23 @@ const categoryLabels = {
   other: 'Other'
 };
 
-let pdfSectionOrder = ['broadway', 'healthcare', 'education', 'fitness', 'other'];
+let pdfSectionOrder = ['healthcare', 'broadway', 'other', 'education', 'fitness'];
+let pdfSectionEnabled = {};
+let pdfEntryEnabled = {};
+let pdfSectionExpanded = {};
+
+function entryKey(yearKey, entry) {
+  return `${yearKey}|${entry.title}|${entry.dates}`;
+}
 
 function openPdfModal() {
   document.getElementById('pdfIncludeUnemployed').checked = false;
   document.getElementById('pdfChronological').checked = false;
   document.getElementById('pdfReverse').checked = false;
   document.getElementById('pdfSectionBlock').style.display = '';
+  pdfSectionEnabled = {};
+  pdfEntryEnabled = {};
+  pdfSectionExpanded = {};
   refreshPdfSectionList();
   document.getElementById('pdfModal').style.display = 'flex';
 }
@@ -715,6 +725,15 @@ function refreshPdfSectionList() {
   });
   pdfSectionOrder = pdfSectionOrder.filter(c => present.has(c));
   present.forEach(c => { if (!pdfSectionOrder.includes(c)) pdfSectionOrder.push(c); });
+  // Default new sections to enabled
+  pdfSectionOrder.forEach(c => { if (!(c in pdfSectionEnabled)) pdfSectionEnabled[c] = true; });
+  // Default new entries to enabled
+  Object.keys(data).forEach(year => {
+    data[year].forEach(entry => {
+      const k = entryKey(year, entry);
+      if (!(k in pdfEntryEnabled)) pdfEntryEnabled[k] = true;
+    });
+  });
   renderPdfSectionList();
 }
 
@@ -723,21 +742,79 @@ function closePdfModal() {
 }
 
 function renderPdfSectionList() {
+  const includeUnemployed = document.getElementById('pdfIncludeUnemployed').checked;
   const list = document.getElementById('pdfSectionList');
   list.innerHTML = '';
   pdfSectionOrder.forEach((cat, i) => {
+    const enabled = pdfSectionEnabled[cat] !== false;
+    const expanded = !!pdfSectionExpanded[cat];
+
+    // Gather + sort entries for this category
+    const catEntries = [];
+    Object.keys(data).forEach(year => {
+      data[year].forEach(entry => {
+        if (entry.category !== cat) return;
+        if (!includeUnemployed && cat === 'unemployed') return;
+        catEntries.push({ entry, yearKey: year });
+      });
+    });
+    catEntries.sort((a, b) => {
+      const aDate = parseDate(a.entry.dates.split('-')[0].trim()) || new Date(parseInt(a.yearKey), 0, 1);
+      const bDate = parseDate(b.entry.dates.split('-')[0].trim()) || new Date(parseInt(b.yearKey), 0, 1);
+      return aDate - bDate;
+    });
+    const enabledCount = catEntries.filter(({entry, yearKey}) => pdfEntryEnabled[entryKey(yearKey, entry)] !== false).length;
+
     const row = document.createElement('div');
     row.draggable = true;
     row.dataset.cat = cat;
-    row.style.cssText = 'display:flex; align-items:center; gap:8px; background:#f5f5f5; border-radius:7px; padding:7px 10px; cursor:grab; font-size:13px; user-select:none;';
-    row.innerHTML = `
-      <span style="color:#bbb; font-size:14px; cursor:grab;">☰</span>
-      <span style="flex:1;">${categoryLabels[cat]}</span>
+    row.style.cssText = 'background:#f5f5f5; border-radius:7px; overflow:hidden; user-select:none;';
+
+    const header = document.createElement('div');
+    header.style.cssText = `display:flex; align-items:center; gap:8px; padding:7px 10px; cursor:grab; font-size:13px; opacity:${enabled ? '1' : '0.45'};`;
+    header.innerHTML = `
+      <input type="checkbox" data-cat="${cat}" ${enabled ? 'checked' : ''} style="width:14px;height:14px;cursor:pointer;flex-shrink:0;" />
+      <span style="color:#bbb; font-size:14px;">☰</span>
+      <span style="flex:1;">${categoryLabels[cat] || cat} <span style="font-size:10px;color:#999;">${enabledCount}/${catEntries.length}</span></span>
+      <button data-expand="${cat}" style="padding:1px 6px; border:1px solid #ddd; background:white; border-radius:5px; cursor:pointer; font-size:11px; color:#555; flex-shrink:0;">${expanded ? '▾' : '▸'}</button>
       <button onclick="movePdfSection(${i},-1)" ${i===0?'disabled':''} style="padding:1px 7px; border:1px solid #ddd; background:white; border-radius:5px; cursor:pointer; font-size:12px; color:#555;">▲</button>
       <button onclick="movePdfSection(${i},1)" ${i===pdfSectionOrder.length-1?'disabled':''} style="padding:1px 7px; border:1px solid #ddd; background:white; border-radius:5px; cursor:pointer; font-size:12px; color:#555;">▼</button>`;
+
+    header.querySelector('input[type=checkbox]').addEventListener('change', function() {
+      pdfSectionEnabled[this.dataset.cat] = this.checked;
+      renderPdfSectionList();
+    });
+    header.querySelector('[data-expand]').addEventListener('click', function(e) {
+      e.stopPropagation();
+      pdfSectionExpanded[cat] = !pdfSectionExpanded[cat];
+      renderPdfSectionList();
+    });
+    row.appendChild(header);
+
+    if (expanded && enabled) {
+      const sub = document.createElement('div');
+      sub.style.cssText = 'padding:0 10px 8px 38px; display:flex; flex-direction:column; gap:3px; border-top:1px solid #e8e8e8;';
+      catEntries.forEach(({entry, yearKey}) => {
+        const k = entryKey(yearKey, entry);
+        const entEnabled = pdfEntryEnabled[k] !== false;
+        const entRow = document.createElement('label');
+        entRow.style.cssText = `display:flex; align-items:baseline; gap:6px; font-size:12px; cursor:pointer; padding-top:4px; opacity:${entEnabled ? '1' : '0.45'};`;
+        const dateParts = entry.dates.split('-').map(d => d.trim());
+        const startDate = parseDate(dateParts[0]);
+        const dateLabel = startDate ? startDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : dateParts[0];
+        entRow.innerHTML = `<input type="checkbox" ${entEnabled ? 'checked' : ''} style="width:12px;height:12px;flex-shrink:0;margin-top:2px;cursor:pointer;" /><span style="flex:1;">${entry.title}</span><span style="color:#aaa;font-size:10px;white-space:nowrap;">${dateLabel}</span>`;
+        entRow.querySelector('input').addEventListener('change', function() {
+          pdfEntryEnabled[k] = this.checked;
+          renderPdfSectionList();
+        });
+        sub.appendChild(entRow);
+      });
+      row.appendChild(sub);
+    }
+
     // Drag events
-    row.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', i); row.style.opacity = '0.4'; });
-    row.addEventListener('dragend', () => { row.style.opacity = '1'; });
+    row.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', i); header.style.opacity = '0.4'; });
+    row.addEventListener('dragend', () => { header.style.opacity = enabled ? '1' : '0.45'; });
     row.addEventListener('dragover', e => { e.preventDefault(); row.style.background = '#e8e8ff'; });
     row.addEventListener('dragleave', () => { row.style.background = '#f5f5f5'; });
     row.addEventListener('drop', e => {
@@ -767,7 +844,8 @@ function confirmPdfModal() {
   const chronological = document.getElementById('pdfChronological').checked;
   const reverse = document.getElementById('pdfReverse').checked;
   closePdfModal();
-  generateResumePDF(pdfSectionOrder, includeUnemployed, chronological, reverse);
+  const enabledSections = pdfSectionOrder.filter(c => pdfSectionEnabled[c] !== false);
+  generateResumePDF(enabledSections, includeUnemployed, chronological, reverse);
 }
 
 function generateResumePDF(categoryOrder, includeUnemployed, chronological, reverse) {
@@ -793,6 +871,7 @@ function generateResumePDF(categoryOrder, includeUnemployed, chronological, reve
   Object.keys(data).forEach(year => {
     data[year].forEach(entry => {
       if (!includeUnemployed && entry.category === 'unemployed') return;
+      if (pdfEntryEnabled[entryKey(year, entry)] === false) return;
       const dateParts = entry.dates.split('-').map(d => d.trim());
       const startDate = parseDate(dateParts[0]);
       allEntries.push({ ...entry, startDate, yearKey: year });
@@ -861,7 +940,6 @@ function generateResumePDF(categoryOrder, includeUnemployed, chronological, reve
 </head>
 <body>
   <h1>Danny Burgos, MS, RN</h1>
-  <div class="subtitle">Resume</div>
   ${sectionsHTML}
 </body>
 </html>`;
