@@ -357,12 +357,14 @@ function renderTimeline() {
         const buttons = document.createElement('div');
         buttons.style.cssText = 'display: flex; gap: 6px;';
         const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
-        editBtn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 1px solid #ddd; color: #666; background: transparent; border-radius: 8px; cursor: pointer;';
+        editBtn.textContent = '📝';
+        editBtn.title = 'Edit';
+        editBtn.style.cssText = 'padding: 2px 6px; font-size: 11px; border: 1px solid #ddd; color: #666; background: transparent; border-radius: 6px; cursor: pointer; line-height: 1;';
         editBtn.addEventListener('click', () => startEdit(yearStr, idx));
         const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = 'Delete';
-        deleteBtn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 1px solid #ffcccc; color: #c33; background: transparent; border-radius: 8px; cursor: pointer;';
+        deleteBtn.textContent = '✕';
+        deleteBtn.title = 'Delete';
+        deleteBtn.style.cssText = 'padding: 2px 6px; font-size: 11px; border: 1px solid #ffcccc; color: #c33; background: transparent; border-radius: 6px; cursor: pointer; line-height: 1;';
         deleteBtn.addEventListener('click', () => deleteEntry(yearStr, idx));
         buttons.appendChild(editBtn);
         buttons.appendChild(deleteBtn);
