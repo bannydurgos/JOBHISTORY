@@ -65,6 +65,7 @@
       <button id="addBtn" style="padding: 5px 9px; background: #4CAF50; border: 1px solid #4CAF50; color: white; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 400; line-height: 1;">+</button>
       <button id="exportBtn" style="padding: 5px 9px; background: #378ADD; border: 1px solid #378ADD; color: white; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 400; line-height: 1;">↓</button>
       <label style="padding: 5px 9px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 16px; line-height: 1;">↑<input type="file" id="importFile" accept=".json" style="display:none;" /></label>
+      <button id="pdfBtn" style="padding: 5px 9px; background: #c0392b; border: 1px solid #c0392b; color: white; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; line-height: 1; letter-spacing: 0.5px;">PDF</button>
       <button id="resetBtn" style="padding: 5px 9px; border: 1px solid #ffcccc; background: white; border-radius: 6px; cursor: pointer; font-size: 16px; color: #c33; line-height: 1;">✕</button>
     </div>
   </div>
@@ -643,6 +644,109 @@ document.addEventListener('click', () => {
   popup.style.display = 'none';
   popup._currentId = null;
 });
+
+document.getElementById('pdfBtn').addEventListener('click', generateResumePDF);
+
+function generateResumePDF() {
+  const categoryOrder = ['broadway', 'healthcare', 'education', 'fitness', 'other'];
+  const categoryLabels = {
+    broadway: 'Broadway & Theatre',
+    healthcare: 'Healthcare',
+    education: 'Education',
+    fitness: 'Fitness',
+    other: 'Other'
+  };
+
+  // Collect all non-unemployed entries with parsed start dates
+  const allEntries = [];
+  Object.keys(data).forEach(year => {
+    data[year].forEach(entry => {
+      if (entry.category === 'unemployed') return;
+      const dateParts = entry.dates.split('-').map(d => d.trim());
+      const startDate = parseDate(dateParts[0]);
+      allEntries.push({ ...entry, startDate, yearKey: year });
+    });
+  });
+  allEntries.sort((a, b) => {
+    const aDate = a.startDate || new Date(parseInt(a.yearKey), 0, 1);
+    const bDate = b.startDate || new Date(parseInt(b.yearKey), 0, 1);
+    return aDate - bDate;
+  });
+
+  // Group by category
+  const grouped = {};
+  categoryOrder.forEach(cat => { grouped[cat] = []; });
+  allEntries.forEach(entry => {
+    const cat = entry.category;
+    if (grouped[cat]) grouped[cat].push(entry);
+  });
+
+  function fmtDate(str) {
+    if (!str || str.trim() === '' || str.trim() === 'Current') return str ? str.trim() : '';
+    const parsed = parseDate(str.trim());
+    if (!parsed) return str.trim();
+    return parsed.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  function fmtDateRange(datesStr) {
+    const parts = datesStr.split('-').map(d => d.trim());
+    const start = fmtDate(parts[0]);
+    const end = parts.length > 1 && parts[1] !== '' ? fmtDate(parts[1]) : 'Present';
+    if (start && end) return `${start} – ${end}`;
+    if (start) return `${start} – Present`;
+    if (end) return `– ${end}`;
+    return datesStr;
+  }
+
+  let sectionsHTML = '';
+  categoryOrder.forEach(cat => {
+    const entries = grouped[cat];
+    if (!entries || entries.length === 0) return;
+    const rowsHTML = entries.map(e => `
+      <div class="entry">
+        <span class="entry-title">${e.title}</span>
+        <span class="entry-dates">${fmtDateRange(e.dates)}</span>
+      </div>`).join('');
+    sectionsHTML += `
+      <div class="section">
+        <div class="section-label">${categoryLabels[cat]}</div>
+        ${rowsHTML}
+      </div>`;
+  });
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Resume</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Times New Roman', Times, serif; color: #111; background: white; padding: 1in; font-size: 11pt; line-height: 1.5; text-transform: uppercase; }
+  h1 { font-size: 22pt; font-weight: bold; letter-spacing: 1px; text-align: center; margin-bottom: 4px; text-transform: uppercase; }
+  .subtitle { text-align: center; font-size: 10pt; color: #555; margin-bottom: 24px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .section { margin-bottom: 20px; }
+  .section-label { font-size: 9pt; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase; color: #555; border-bottom: 1px solid #bbb; padding-bottom: 3px; margin-bottom: 8px; }
+  .entry { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .entry-title { font-size: 11pt; }
+  .entry-dates { font-size: 9.5pt; color: #444; white-space: nowrap; margin-left: 16px; }
+  @media print {
+    body { padding: 0.6in 0.75in; }
+    @page { margin: 0; }
+  }
+</style>
+</head>
+<body>
+  <h1>Resume</h1>
+  <div class="subtitle">Career History</div>
+  ${sectionsHTML}
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.addEventListener('load', () => win.print());
+}
 
 renderTimeline();
 </script>
