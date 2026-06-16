@@ -15,6 +15,7 @@
 <div style="padding: 0.5rem 0; max-width: 650px; margin: 0 auto;">
 
 <div id="message" style="margin-bottom: 0.5rem;"></div>
+<div id="durPopup" style="display:none; position:absolute; background:#222; color:#fff; font-size:12px; padding:4px 10px; border-radius:6px; pointer-events:none; z-index:2000; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.25);"></div>
 
 <!-- Gap modal -->
 <div id="gapModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; align-items:center; justify-content:center;">
@@ -233,6 +234,7 @@ function renderFilters() {
 function renderTimeline() {
   const timeline = document.getElementById('timeline');
   timeline.innerHTML = '';
+  Object.keys(_durMap).forEach(k => delete _durMap[k]);
   const gapMap = buildGapMap();
 
   // Collect all years, adding intermediate years for explicit multi-year spans
@@ -349,11 +351,13 @@ function renderTimeline() {
         header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 8px;';
         const title = document.createElement('p');
         title.style.cssText = 'font-size: 13px; color: #333; margin: 0; flex: 1;';
+        const durId = `dur-${yearStr}-${idx}`;
+        _durMap[durId] = entry.dates;
         const startLabel = entryStartDate ? entryStartDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : dateParts[0];
         const dateDisplay = spansYears
-          ? `<span style="font-size:11px;color:#aaa;">starts ${startLabel}</span>`
-          : `<span style="font-size:11px;color:#aaa;">${formatDisplayDates(entry.dates)}</span>`;
-        title.innerHTML = `${entry.title} ${dateDisplay}`;
+          ? `<span onclick="toggleDuration('${durId}',event)" style="font-size:11px;color:#aaa;cursor:pointer;" title="Click to see duration">starts ${startLabel}</span>`
+          : `<span onclick="toggleDuration('${durId}',event)" style="font-size:11px;color:#aaa;cursor:pointer;" title="Click to see duration">${formatDisplayDates(entry.dates)}</span>`;
+        title.innerHTML = `<span onclick="toggleDuration('${durId}',event)" style="cursor:pointer;" title="Click to see duration">${entry.title}</span> ${dateDisplay}`;
         const buttons = document.createElement('div');
         buttons.style.cssText = 'display: flex; gap: 6px;';
         const editBtn = document.createElement('button');
@@ -525,6 +529,51 @@ document.getElementById('importFile').addEventListener('change', (e) => {
   e.target.value = '';
 });
 
+const _durMap = {};
+
+function calcDuration(datesStr) {
+  const parts = datesStr.split('-').map(d => d.trim());
+  const start = parseDate(parts[0]);
+  const endRaw = parts.length > 1 ? parts[1].trim() : null;
+  const end = (endRaw && endRaw !== '' && endRaw !== 'Current') ? parseDate(endRaw) : null;
+  const endDate = end || ((endRaw === '' || endRaw === 'Current') ? new Date() : null);
+  if (!start || !endDate) return null;
+  const totalDays = Math.round((endDate - start) / (1000 * 60 * 60 * 24));
+  if (totalDays < 0) return null;
+  const years = Math.floor(totalDays / 365);
+  const months = Math.floor((totalDays % 365) / 30);
+  const weeks = Math.floor((totalDays % 365 % 30) / 7);
+  const days = totalDays % 365 % 30 % 7;
+  const out = [];
+  if (years > 0) out.push(`${years} yr${years !== 1 ? 's' : ''}`);
+  if (months > 0) out.push(`${months} mo${months !== 1 ? 's' : ''}`);
+  if (weeks > 0) out.push(`${weeks} wk${weeks !== 1 ? 's' : ''}`);
+  if (days > 0) out.push(`${days} day${days !== 1 ? 's' : ''}`);
+  return out.join(' ') || '0 days';
+}
+
+function toggleDuration(id, event) {
+  event.stopPropagation();
+  const popup = document.getElementById('durPopup');
+  if (popup._currentId === id && popup.style.display !== 'none') {
+    popup.style.display = 'none';
+    popup._currentId = null;
+    return;
+  }
+  const dur = calcDuration(_durMap[id]);
+  if (!dur) return;
+  popup.textContent = dur;
+  popup._currentId = id;
+  const rect = event.currentTarget.getBoundingClientRect();
+  popup.style.display = 'block';
+  const popW = popup.offsetWidth;
+  let left = rect.left + rect.width / 2 - popW / 2;
+  if (left < 8) left = 8;
+  if (left + popW > window.innerWidth - 8) left = window.innerWidth - 8 - popW;
+  popup.style.left = `${left + window.scrollX}px`;
+  popup.style.top = `${rect.bottom + window.scrollY + 6}px`;
+}
+
 let currentGap = null;
 
 function openGapModal(gap) {
@@ -585,6 +634,12 @@ function confirmGapModal() {
 
 document.getElementById('gapModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('gapModal')) closeGapModal();
+});
+
+document.addEventListener('click', () => {
+  const popup = document.getElementById('durPopup');
+  popup.style.display = 'none';
+  popup._currentId = null;
 });
 
 renderTimeline();
