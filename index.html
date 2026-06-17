@@ -99,7 +99,7 @@
       <option value="unemployed">Unemployed</option>
       <option value="other">Other</option>
     </select>
-    <input type="text" id="title" placeholder="Place of employment" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 140px;" />
+    <input type="text" id="title" placeholder="Place of employment" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 200px;" />
     <input type="text" id="subtitle" placeholder="Job title" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 140px;" />
     <input type="date" id="startDate" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 120px;" />
     <input type="date" id="endDate" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 120px;" />
@@ -355,7 +355,7 @@ function renderTimeline() {
       const cSubTitle = cParenIdx > -1 ? entry.title.slice(cParenIdx + 1).replace(/\)$/, '').trim() : null;
       const titleSpan = document.createElement('div');
       titleSpan.style.cssText = 'flex: 1; min-width: 0;';
-      titleSpan.innerHTML = `<span style="font-size:13px;font-weight:bold;color:${isEnding ? '#333' : '#666'};display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cMainTitle}</span>${cSubTitle ? `<span style="font-size:11px;color:${isEnding ? '#666' : '#999'};display:block;">${cSubTitle}</span>` : ''}`;
+      titleSpan.innerHTML = `<span style="font-size:13px;font-weight:bold;color:${isEnding ? '#333' : '#666'};display:block;">${cMainTitle}</span>${cSubTitle ? `<span style="font-size:11px;color:${isEnding ? '#666' : '#999'};display:block;">${cSubTitle}</span>` : ''}`;
       const endLabel = endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       const isPast = endDate < today;
       const dateSpan = document.createElement('span');
@@ -440,7 +440,7 @@ function renderTimeline() {
         const titleSpan = document.createElement('div');
         titleSpan.style.cssText = 'flex: 1; min-width: 0; cursor: pointer;';
         titleSpan.title = 'Click to see duration · Double-click to edit';
-        titleSpan.innerHTML = `<span style="font-size:13px;color:#333;font-weight:bold;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${mainTitle}</span>${subTitle ? `<span style="font-size:11px;color:#666;display:block;">${subTitle}</span>` : ''}`;
+        titleSpan.innerHTML = `<span style="font-size:13px;color:#333;font-weight:bold;display:block;">${mainTitle}</span>${subTitle ? `<span style="font-size:11px;color:#666;display:block;">${subTitle}</span>` : ''}`;
         titleSpan.addEventListener('click', (e) => toggleDuration(durId, e));
         const dateSpan = document.createElement('span');
         dateSpan.style.cssText = 'font-size: 11px; color: #666; cursor: pointer; flex: 0 0 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 1px;';
