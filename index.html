@@ -47,6 +47,18 @@
   </div>
 </div>
 
+<!-- Delete confirm modal -->
+<div id="deleteModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:white; border-radius:10px; padding:1.25rem; width:300px; max-width:95vw; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+    <div style="font-weight:600; font-size:14px; margin-bottom:0.5rem; color:#333;">Delete Entry</div>
+    <div id="deleteModalInfo" style="font-size:12px; color:#888; margin-bottom:1.25rem;"></div>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button onclick="closeDeleteModal()" style="padding:6px 14px; font-size:13px; border:1px solid #ddd; background:white; border-radius:8px; cursor:pointer;">Cancel</button>
+      <button onclick="confirmDeleteModal()" style="padding:6px 14px; font-size:13px; background:#c0392b; border:1px solid #c0392b; color:white; border-radius:8px; cursor:pointer; font-weight:500;">Delete</button>
+    </div>
+  </div>
+</div>
+
 <!-- Gap modal -->
 <div id="gapModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; align-items:center; justify-content:center;">
   <div style="background:white; border-radius:10px; padding:1.25rem; width:380px; max-width:95vw; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
@@ -79,10 +91,7 @@
 
 <div style="background: #f0f0f0; border-radius: 8px; padding: 0.6rem 0.75rem; margin-bottom: 0.75rem;">
   <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
-    <input type="text" id="title" placeholder="Job title" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 140px;" />
-    <input type="date" id="startDate" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 120px;" />
-    <input type="date" id="endDate" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 120px;" />
-    <select id="category" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;">
+    <select id="category" onchange="updateFormPlaceholders()" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;">
       <option value="broadway">Broadway & Theatre</option>
       <option value="education">Education</option>
       <option value="healthcare">Healthcare</option>
@@ -90,6 +99,10 @@
       <option value="unemployed">Unemployed</option>
       <option value="other">Other</option>
     </select>
+    <input type="text" id="title" placeholder="Place of employment" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 140px;" />
+    <input type="text" id="subtitle" placeholder="Job title" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 140px;" />
+    <input type="date" id="startDate" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 120px;" />
+    <input type="date" id="endDate" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 120px;" />
     <div style="display: flex; gap: 5px; width: 100%; justify-content: center;">
       <button id="addBtn" style="padding: 5px 9px; background: #4CAF50; border: 1px solid #4CAF50; color: white; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 400; line-height: 1;">+</button>
       <button id="exportBtn" style="padding: 5px 9px; background: #378ADD; border: 1px solid #378ADD; color: white; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 400; line-height: 1;">↓</button>
@@ -113,6 +126,13 @@
 
 <script>
 const STORAGE_KEY = 'career_timeline_entries';
+
+function updateFormPlaceholders() {
+  const cat = document.getElementById('category').value;
+  const isEdu = cat === 'education';
+  document.getElementById('title').placeholder = isEdu ? 'School' : 'Place of employment';
+  document.getElementById('subtitle').placeholder = isEdu ? 'Major / Concentration' : 'Job title';
+}
 
 const defaultData = {
   2009: [{ title: 'Student at FSU', dates: '6/29/2009 -', category: 'education' }],
@@ -321,17 +341,34 @@ function renderTimeline() {
     if (isCollapsed) { timeline.appendChild(yearSection); return; }
 
     // Render continuation entries at the top of the year
+    const today = new Date(); today.setHours(0,0,0,0);
     continuations.forEach(({ entry, endDate, isEnding }) => {
       const color = colors[entry.category] || colors.other;
       const entryDiv = document.createElement('div');
-      entryDiv.style.cssText = `display: flex; align-items: center; margin-bottom: 0.1rem; border-left: 3px ${isEnding ? 'solid' : 'dashed'} ${color}; background: ${color}${isEnding ? '18' : '0d'}; border-radius: 0 6px 6px 0; padding: 2px 8px; opacity: ${isEnding ? '1' : '0.75'};`;
-      const title = document.createElement('p');
-      title.style.cssText = `font-size: 13px; color: ${isEnding ? '#333' : '#666'}; margin: 0; font-style: italic; flex: 1;`;
+      entryDiv.style.cssText = `display: flex; align-items: flex-start; margin-bottom: 0.1rem; border-left: 3px ${isEnding ? 'solid' : 'dashed'} ${color}; background: ${color}${isEnding ? '18' : '0d'}; border-radius: 0 6px 6px 0; padding: 4px 8px; opacity: ${isEnding ? '1' : '0.75'};`;
+      const content = document.createElement('div');
+      content.style.cssText = 'flex: 1;';
+      const header = document.createElement('div');
+      header.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+      const cParenIdx = entry.title.indexOf('(');
+      const cMainTitle = cParenIdx > -1 ? entry.title.slice(0, cParenIdx).trim() : entry.title;
+      const cSubTitle = cParenIdx > -1 ? entry.title.slice(cParenIdx + 1).replace(/\)$/, '').trim() : null;
+      const titleSpan = document.createElement('div');
+      titleSpan.style.cssText = 'flex: 1; min-width: 0;';
+      titleSpan.innerHTML = `<span style="font-size:13px;font-weight:bold;color:${isEnding ? '#333' : '#666'};display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cMainTitle}</span>${cSubTitle ? `<span style="font-size:11px;color:${isEnding ? '#666' : '#999'};display:block;">${cSubTitle}</span>` : ''}`;
       const endLabel = endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-      title.innerHTML = isEnding
-        ? `${entry.title} <span style="font-size:11px;color:#aaa;">ends ${endLabel}</span>`
-        : entry.title;
-      entryDiv.appendChild(title);
+      const isPast = endDate < today;
+      const dateSpan = document.createElement('span');
+      dateSpan.style.cssText = 'font-size: 11px; color: #666; flex: 0 0 210px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 1px;';
+      dateSpan.textContent = isEnding ? `${isPast ? 'ended' : 'ends'} ${endLabel}` : `through ${endLabel}`;
+      const spacer = document.createElement('div');
+      spacer.style.cssText = 'padding: 2px 6px; font-size: 11px; flex-shrink: 0; visibility: hidden;';
+      spacer.textContent = '✕';
+      header.appendChild(titleSpan);
+      header.appendChild(dateSpan);
+      header.appendChild(spacer);
+      content.appendChild(header);
+      entryDiv.appendChild(content);
       yearSection.appendChild(entryDiv);
     });
 
@@ -349,28 +386,37 @@ function renderTimeline() {
       const spansYears = entryStartDate && entryEndDate && entryEndDate.getFullYear() > entryStartDate.getFullYear();
 
       const entryDiv = document.createElement('div');
-      entryDiv.style.cssText = `display: flex; align-items: center; margin-bottom: 0.1rem; border-left: 3px solid ${color}; background: ${color}18; border-radius: 0 6px 6px 0; padding: 2px 8px;`;
+      entryDiv.style.cssText = `display: flex; align-items: flex-start; margin-bottom: 0.1rem; border-left: 3px solid ${color}; background: ${color}45; border-radius: 0 6px 6px 0; padding: 4px 8px;`;
       const content = document.createElement('div');
       content.style.cssText = 'flex: 1;';
       if (isEditing) {
         const startDate = parseDate(dateParts[0]);
         const endDate = dateParts.length > 1 && dateParts[1] !== '' ? parseDate(dateParts[1]) : null;
+        const parenIdxE = entry.title.indexOf('(');
+        const editMain = parenIdxE > -1 ? entry.title.slice(0, parenIdxE).trim() : entry.title;
+        const editSub = parenIdxE > -1 ? entry.title.slice(parenIdxE + 1).replace(/\)$/, '').trim() : '';
+        const isEdu = entry.category === 'education';
         content.innerHTML = `
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 6px; margin-bottom: 4px;">
-            <input type="text" id="edit-title-${idx}" value="${entry.title}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
-            <input type="date" id="edit-start-${idx}" value="${startDate ? dateObjToString(startDate) : ''}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
-            <input type="date" id="edit-end-${idx}" value="${endDate ? dateObjToString(endDate) : ''}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
-            <select id="edit-category-${idx}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;">
-              <option value="broadway" ${entry.category === 'broadway' ? 'selected' : ''}>Broadway & Theatre</option>
-              <option value="education" ${entry.category === 'education' ? 'selected' : ''}>Education</option>
-              <option value="healthcare" ${entry.category === 'healthcare' ? 'selected' : ''}>Healthcare</option>
-              <option value="fitness" ${entry.category === 'fitness' ? 'selected' : ''}>Fitness</option>
-              <option value="unemployed" ${entry.category === 'unemployed' ? 'selected' : ''}>Unemployed</option>
-              <option value="other" ${entry.category === 'other' ? 'selected' : ''}>Other</option>
-            </select>
-            <div style="display: flex; gap: 5px;">
-              <button id="save-${idx}" style="padding: 5px 10px; background: #4CAF50; border: 1px solid #4CAF50; color: white; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">Save</button>
-              <button id="cancel-${idx}" style="padding: 5px 10px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 12px;">Cancel</button>
+          <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px;">
+              <input type="text" id="edit-title-${idx}" value="${editMain}" placeholder="${isEdu ? 'School' : 'Place of employment'}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
+              <input type="text" id="edit-subtitle-${idx}" value="${editSub}" placeholder="${isEdu ? 'Major / Concentration' : 'Job title'}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
+              <div style="display: flex; gap: 5px;">
+                <button id="save-${idx}" style="padding: 5px 10px; background: #4CAF50; border: 1px solid #4CAF50; color: white; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">Save</button>
+                <button id="cancel-${idx}" style="padding: 5px 10px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 12px;">Cancel</button>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+              <input type="date" id="edit-start-${idx}" value="${startDate ? dateObjToString(startDate) : ''}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
+              <input type="date" id="edit-end-${idx}" value="${endDate ? dateObjToString(endDate) : ''}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;" />
+              <select id="edit-category-${idx}" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;">
+                <option value="broadway" ${entry.category === 'broadway' ? 'selected' : ''}>Broadway & Theatre</option>
+                <option value="education" ${entry.category === 'education' ? 'selected' : ''}>Education</option>
+                <option value="healthcare" ${entry.category === 'healthcare' ? 'selected' : ''}>Healthcare</option>
+                <option value="fitness" ${entry.category === 'fitness' ? 'selected' : ''}>Fitness</option>
+                <option value="unemployed" ${entry.category === 'unemployed' ? 'selected' : ''}>Unemployed</option>
+                <option value="other" ${entry.category === 'other' ? 'selected' : ''}>Other</option>
+              </select>
             </div>
           </div>
         `;
@@ -380,32 +426,36 @@ function renderTimeline() {
         }, 0);
       } else {
         const header = document.createElement('div');
-        header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 8px;';
-        const title = document.createElement('p');
-        title.style.cssText = 'font-size: 13px; color: #333; margin: 0; flex: 1;';
+        header.style.cssText = 'display: flex; align-items: center; gap: 8px;';
         const durId = `dur-${yearStr}-${idx}`;
         _durMap[durId] = entry.dates;
         const startLabel = entryStartDate ? entryStartDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : dateParts[0];
-        const dateDisplay = spansYears
-          ? `<span onclick="toggleDuration('${durId}',event)" style="font-size:11px;color:#aaa;cursor:pointer;" title="Click to see duration">starts ${startLabel}</span>`
-          : `<span onclick="toggleDuration('${durId}',event)" style="font-size:11px;color:#aaa;cursor:pointer;" title="Click to see duration">${formatDisplayDates(entry.dates)}</span>`;
-        title.innerHTML = `<span onclick="toggleDuration('${durId}',event)" style="cursor:pointer;" title="Click to see duration">${entry.title}</span> ${dateDisplay}`;
-        const buttons = document.createElement('div');
-        buttons.style.cssText = 'display: flex; gap: 6px;';
-        const editBtn = document.createElement('button');
-        editBtn.textContent = '📝';
-        editBtn.title = 'Edit';
-        editBtn.style.cssText = 'padding: 2px 6px; font-size: 11px; border: 1px solid #ddd; color: #666; background: transparent; border-radius: 6px; cursor: pointer; line-height: 1;';
-        editBtn.addEventListener('click', () => startEdit(yearStr, idx));
+        const startIsPast = entryStartDate && entryStartDate < today;
+        const dateText = spansYears
+          ? `${startIsPast ? 'started' : 'starts'} ${startLabel}`
+          : formatDisplayDates(entry.dates);
+        const parenIdx = entry.title.indexOf('(');
+        const mainTitle = parenIdx > -1 ? entry.title.slice(0, parenIdx).trim() : entry.title;
+        const subTitle = parenIdx > -1 ? entry.title.slice(parenIdx + 1).replace(/\)$/, '').trim() : null;
+        const titleSpan = document.createElement('div');
+        titleSpan.style.cssText = 'flex: 1; min-width: 0; cursor: pointer;';
+        titleSpan.title = 'Click to see duration · Double-click to edit';
+        titleSpan.innerHTML = `<span style="font-size:13px;color:#333;font-weight:bold;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${mainTitle}</span>${subTitle ? `<span style="font-size:11px;color:#666;display:block;">${subTitle}</span>` : ''}`;
+        titleSpan.addEventListener('click', (e) => toggleDuration(durId, e));
+        const dateSpan = document.createElement('span');
+        dateSpan.style.cssText = 'font-size: 11px; color: #666; cursor: pointer; flex: 0 0 210px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 1px;';
+        dateSpan.title = 'Click to see duration';
+        dateSpan.textContent = dateText;
+        dateSpan.addEventListener('click', (e) => toggleDuration(durId, e));
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = '✕';
         deleteBtn.title = 'Delete';
-        deleteBtn.style.cssText = 'padding: 2px 6px; font-size: 11px; border: 1px solid #ffcccc; color: #c33; background: transparent; border-radius: 6px; cursor: pointer; line-height: 1;';
-        deleteBtn.addEventListener('click', () => deleteEntry(yearStr, idx));
-        buttons.appendChild(editBtn);
-        buttons.appendChild(deleteBtn);
-        header.appendChild(title);
-        header.appendChild(buttons);
+        deleteBtn.style.cssText = 'padding: 2px 6px; font-size: 11px; border: 1px solid #ffcccc; color: #c33; background: transparent; border-radius: 6px; cursor: pointer; line-height: 1; flex-shrink: 0; margin-top: 1px;';
+        deleteBtn.addEventListener('click', () => openDeleteConfirm(yearStr, idx));
+        entryDiv.addEventListener('dblclick', () => startEdit(yearStr, idx));
+        header.appendChild(titleSpan);
+        header.appendChild(dateSpan);
+        header.appendChild(deleteBtn);
         content.appendChild(header);
       }
       entryDiv.appendChild(content);
@@ -436,11 +486,13 @@ function cancelEdit() {
 }
 
 function saveEdit(year, index) {
-  const newTitle = document.getElementById(`edit-title-${index}`).value.trim();
+  const newMain = document.getElementById(`edit-title-${index}`).value.trim();
+  const newSub = document.getElementById(`edit-subtitle-${index}`).value.trim();
+  const newTitle = newSub ? `${newMain} (${newSub})` : newMain;
   const newStartDate = document.getElementById(`edit-start-${index}`).value;
   const newEndDate = document.getElementById(`edit-end-${index}`).value;
   const newCategory = document.getElementById(`edit-category-${index}`).value;
-  if (!newTitle || (!newStartDate && !newEndDate)) {
+  if (!newMain || (!newStartDate && !newEndDate)) {
     showMessage('Please fill in title and at least one date', 'error');
     return;
   }
@@ -466,6 +518,26 @@ function saveEdit(year, index) {
   showMessage('Entry updated', 'success');
 }
 
+let pendingDelete = null;
+
+function openDeleteConfirm(year, index) {
+  pendingDelete = { year, index };
+  document.getElementById('deleteModalInfo').textContent = `Are you sure you want to delete "${data[year][index].title}"?`;
+  document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+  document.getElementById('deleteModal').style.display = 'none';
+  pendingDelete = null;
+}
+
+function confirmDeleteModal() {
+  if (!pendingDelete) return;
+  const { year, index } = pendingDelete;
+  closeDeleteModal();
+  deleteEntry(year, index);
+}
+
 function deleteEntry(year, index) {
   data[year].splice(index, 1);
   if (data[year].length === 0) delete data[year];
@@ -483,11 +555,13 @@ function showMessage(text, type, force) {
 }
 
 document.getElementById('addBtn').addEventListener('click', () => {
-  const title = document.getElementById('title').value.trim();
+  const mainVal = document.getElementById('title').value.trim();
+  const subVal = document.getElementById('subtitle').value.trim();
+  const title = subVal ? `${mainVal} (${subVal})` : mainVal;
   const startDateVal = document.getElementById('startDate').value;
   const endDateVal = document.getElementById('endDate').value;
   const category = document.getElementById('category').value;
-  if (!title || (!startDateVal && !endDateVal)) {
+  if (!mainVal || (!startDateVal && !endDateVal)) {
     showMessage('Please fill in title and at least one date', 'error');
     return;
   }
@@ -515,9 +589,11 @@ document.getElementById('addBtn').addEventListener('click', () => {
   data[year].push({ title, dates: dateStr, category });
   saveData();
   document.getElementById('title').value = '';
+  document.getElementById('subtitle').value = '';
   document.getElementById('startDate').value = '';
   document.getElementById('endDate').value = '';
   document.getElementById('category').value = 'broadway';
+  updateFormPlaceholders();
   renderTimeline();
   showMessage('Entry added successfully', 'success');
 });
@@ -668,6 +744,10 @@ document.getElementById('gapModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('gapModal')) closeGapModal();
 });
 
+document.getElementById('deleteModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('deleteModal')) closeDeleteModal();
+});
+
 document.getElementById('pdfModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('pdfModal')) closePdfModal();
 });
@@ -710,8 +790,7 @@ function openPdfModal() {
 }
 
 function togglePdfChronological() {
-  const isChron = document.getElementById('pdfChronological').checked;
-  document.getElementById('pdfSectionBlock').style.display = isChron ? 'none' : '';
+  renderPdfSectionList();
 }
 
 function refreshPdfSectionList() {
@@ -743,7 +822,10 @@ function closePdfModal() {
 
 function renderPdfSectionList() {
   const includeUnemployed = document.getElementById('pdfIncludeUnemployed').checked;
+  const isChron = document.getElementById('pdfChronological').checked;
   const list = document.getElementById('pdfSectionList');
+  const hintEl = list.previousElementSibling;
+  if (hintEl) hintEl.textContent = isChron ? 'Check sections to include' : 'Drag or use arrows to reorder sections';
   list.innerHTML = '';
   pdfSectionOrder.forEach((cat, i) => {
     const enabled = pdfSectionEnabled[cat] !== false;
@@ -766,19 +848,19 @@ function renderPdfSectionList() {
     const enabledCount = catEntries.filter(({entry, yearKey}) => pdfEntryEnabled[entryKey(yearKey, entry)] !== false).length;
 
     const row = document.createElement('div');
-    row.draggable = true;
+    row.draggable = !isChron;
     row.dataset.cat = cat;
     row.style.cssText = 'background:#f5f5f5; border-radius:7px; overflow:hidden; user-select:none;';
 
     const header = document.createElement('div');
-    header.style.cssText = `display:flex; align-items:center; gap:8px; padding:7px 10px; cursor:grab; font-size:13px; opacity:${enabled ? '1' : '0.45'};`;
+    header.style.cssText = `display:flex; align-items:center; gap:8px; padding:7px 10px; cursor:${isChron ? 'default' : 'grab'}; font-size:13px; opacity:${enabled ? '1' : '0.45'};`;
     header.innerHTML = `
       <input type="checkbox" data-cat="${cat}" ${enabled ? 'checked' : ''} style="width:14px;height:14px;cursor:pointer;flex-shrink:0;" />
-      <span style="color:#bbb; font-size:14px;">☰</span>
+      <span style="color:#bbb; font-size:14px; ${isChron ? 'display:none;' : ''}">☰</span>
       <span style="flex:1;">${categoryLabels[cat] || cat} <span style="font-size:10px;color:#999;">${enabledCount}/${catEntries.length}</span></span>
       <button data-expand="${cat}" style="padding:1px 6px; border:1px solid #ddd; background:white; border-radius:5px; cursor:pointer; font-size:11px; color:#555; flex-shrink:0;">${expanded ? '▾' : '▸'}</button>
-      <button onclick="movePdfSection(${i},-1)" ${i===0?'disabled':''} style="padding:1px 7px; border:1px solid #ddd; background:white; border-radius:5px; cursor:pointer; font-size:12px; color:#555;">▲</button>
-      <button onclick="movePdfSection(${i},1)" ${i===pdfSectionOrder.length-1?'disabled':''} style="padding:1px 7px; border:1px solid #ddd; background:white; border-radius:5px; cursor:pointer; font-size:12px; color:#555;">▼</button>`;
+      ${isChron ? '' : `<button onclick="movePdfSection(${i},-1)" ${i===0?'disabled':''} style="padding:1px 7px; border:1px solid #ddd; background:white; border-radius:5px; cursor:pointer; font-size:12px; color:#555;">▲</button>
+      <button onclick="movePdfSection(${i},1)" ${i===pdfSectionOrder.length-1?'disabled':''} style="padding:1px 7px; border:1px solid #ddd; background:white; border-radius:5px; cursor:pointer; font-size:12px; color:#555;">▼</button>`}`;
 
     header.querySelector('input[type=checkbox]').addEventListener('change', function() {
       pdfSectionEnabled[this.dataset.cat] = this.checked;
@@ -872,6 +954,7 @@ function generateResumePDF(categoryOrder, includeUnemployed, chronological, reve
     data[year].forEach(entry => {
       if (!includeUnemployed && entry.category === 'unemployed') return;
       if (pdfEntryEnabled[entryKey(year, entry)] === false) return;
+      if (pdfSectionEnabled[entry.category] === false) return;
       const dateParts = entry.dates.split('-').map(d => d.trim());
       const startDate = parseDate(dateParts[0]);
       allEntries.push({ ...entry, startDate, yearKey: year });
@@ -886,13 +969,22 @@ function generateResumePDF(categoryOrder, includeUnemployed, chronological, reve
 
   let sectionsHTML = '';
 
-  if (chronological) {
-    const rowsHTML = allEntries.map(e => `
+  function entryHTML(e) {
+    const pi = e.title.indexOf('(');
+    const main = pi > -1 ? e.title.slice(0, pi).trim() : e.title;
+    const sub = pi > -1 ? e.title.slice(pi + 1).replace(/\)$/, '').trim() : null;
+    return `
       <div class="entry">
-        <span class="entry-title">${e.title}</span>
+        <div class="entry-title">
+          <div>${main}</div>
+          ${sub ? `<div class="entry-subtitle">${sub}</div>` : ''}
+        </div>
         <span class="entry-dates">${fmtDateRange(e.dates)}</span>
-      </div>`).join('');
-    sectionsHTML = `<div class="section">${rowsHTML}</div>`;
+      </div>`;
+  }
+
+  if (chronological) {
+    sectionsHTML = `<div class="section">${allEntries.map(entryHTML).join('')}</div>`;
   } else {
     // Group by category preserving user-chosen order
     const grouped = {};
@@ -904,15 +996,10 @@ function generateResumePDF(categoryOrder, includeUnemployed, chronological, reve
     categoryOrder.forEach(cat => {
       const entries = grouped[cat];
       if (!entries || entries.length === 0) return;
-      const rowsHTML = entries.map(e => `
-        <div class="entry">
-          <span class="entry-title">${e.title}</span>
-          <span class="entry-dates">${fmtDateRange(e.dates)}</span>
-        </div>`).join('');
       sectionsHTML += `
         <div class="section">
           <div class="section-label">${allCategoryLabels[cat] || cat}</div>
-          ${rowsHTML}
+          ${entries.map(entryHTML).join('')}
         </div>`;
     });
   }
@@ -929,9 +1016,10 @@ function generateResumePDF(categoryOrder, includeUnemployed, chronological, reve
   .subtitle { text-align: center; font-size: 10pt; color: #555; margin-bottom: 24px; letter-spacing: 0.5px; text-transform: uppercase; }
   .section { margin-bottom: 20px; }
   .section-label { font-size: 9pt; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase; color: #555; border-bottom: 1px solid #bbb; padding-bottom: 3px; margin-bottom: 8px; }
-  .entry { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
-  .entry-title { font-size: 11pt; }
-  .entry-dates { font-size: 9.5pt; color: #444; white-space: nowrap; margin-left: 16px; }
+  .entry { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .entry-title { font-size: 11pt; font-weight: bold; }
+  .entry-subtitle { font-size: 9.5pt; font-weight: normal; color: #333; }
+  .entry-dates { font-size: 9.5pt; color: #444; white-space: nowrap; margin-left: 16px; padding-top: 1pt; }
   @media print {
     body { padding: 0.6in 0.75in; }
     @page { margin: 0; }
