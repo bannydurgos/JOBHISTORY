@@ -89,30 +89,76 @@
   </div>
 </div>
 
+<!-- Add Entry modal -->
+<div id="addModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:white; border-radius:10px; padding:1.25rem; width:380px; max-width:95vw; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+    <div style="font-weight:600; font-size:14px; margin-bottom:0.75rem; color:#333;">Add Entry</div>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:1rem;">
+      <select id="category" onchange="updateFormPlaceholders()" style="padding:6px 8px; border:1px solid #ddd; border-radius:6px; font-size:12px; width:100%;">
+        <option value="broadway">Broadway & Theatre</option>
+        <option value="education">Education</option>
+        <option value="healthcare">Healthcare</option>
+        <option value="unemployed">Unemployed</option>
+        <option value="other">Other</option>
+      </select>
+      <input type="text" id="title" placeholder="Place of employment" style="padding:6px 8px; border:1px solid #ddd; border-radius:6px; font-size:12px; width:100%;" />
+      <input type="text" id="subtitle" placeholder="Job title" style="padding:6px 8px; border:1px solid #ddd; border-radius:6px; font-size:12px; width:100%;" />
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div>
+          <label style="font-size:11px; color:#666; display:block; margin-bottom:3px;">Start date</label>
+          <input type="date" id="startDate" style="padding:6px 8px; border:1px solid #ddd; border-radius:6px; font-size:12px; width:100%;" />
+        </div>
+        <div>
+          <label style="font-size:11px; color:#666; display:block; margin-bottom:3px;">End date</label>
+          <input type="date" id="endDate" style="padding:6px 8px; border:1px solid #ddd; border-radius:6px; font-size:12px; width:100%;" />
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button onclick="closeAddModal()" style="padding:6px 14px; font-size:13px; border:1px solid #ddd; background:white; border-radius:8px; cursor:pointer;">Cancel</button>
+      <button onclick="confirmAddModal()" style="padding:6px 14px; font-size:13px; background:#4CAF50; border:1px solid #4CAF50; color:white; border-radius:8px; cursor:pointer; font-weight:500;">Add</button>
+    </div>
+  </div>
+</div>
+
 <div style="background: #f0f0f0; border-radius: 8px; padding: 0.6rem 0.75rem; margin-bottom: 0.75rem;">
   <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
-    <select id="category" onchange="updateFormPlaceholders()" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;">
-      <option value="broadway">Broadway & Theatre</option>
-      <option value="education">Education</option>
-      <option value="healthcare">Healthcare</option>
-      <option value="unemployed">Unemployed</option>
-      <option value="other">Other</option>
-    </select>
-    <input type="text" id="title" placeholder="Place of employment" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 200px;" />
-    <input type="text" id="subtitle" placeholder="Job title" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 140px;" />
-    <input type="date" id="startDate" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 120px;" />
-    <input type="date" id="endDate" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; flex: 1; min-width: 120px;" />
-    <div style="display: flex; gap: 5px; width: 100%; justify-content: center;">
-      <button id="addBtn" style="padding: 5px 9px; background: #4CAF50; border: 1px solid #4CAF50; color: white; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 400; line-height: 1;">+</button>
-      <button id="exportBtn" style="padding: 5px 9px; background: #378ADD; border: 1px solid #378ADD; color: white; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 400; line-height: 1;">↓</button>
-      <label style="padding: 5px 9px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 16px; line-height: 1;">↑<input type="file" id="importFile" accept=".json" style="display:none;" /></label>
-      <button id="pdfBtn" style="padding: 5px 9px; background: #c0392b; border: 1px solid #c0392b; color: white; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; line-height: 1; letter-spacing: 0.5px;">PDF</button>
-      <div style="display:flex; border:1px solid #ddd; border-radius:6px; overflow:hidden; flex-shrink:0;">
-        <button id="viewList" title="List view" style="padding:5px 8px; border:none; border-right:1px solid #ddd; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">list</button>
-        <button id="viewCards" title="Cards view" style="padding:5px 8px; border:none; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">cards</button>
+    <div style="display: flex; width: 100%; align-items: center;">
+      <!-- Left -->
+      <div style="flex:1; display:flex; justify-content:flex-start;">
+        <button id="addBtn" style="padding: 5px 9px; background: #4CAF50; border: 1px solid #4CAF50; color: white; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 400; line-height: 1;">+</button>
       </div>
-      <button id="unemployedToggleBtn" style="padding:5px 9px; border:1px solid #888; background:#888; color:white; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">unemployed</button>
-      <button id="resetBtn" style="padding: 5px 9px; border: 1px solid #ffcccc; background: white; border-radius: 6px; cursor: pointer; font-size: 16px; color: #c33; line-height: 1;">✕</button>
+      <!-- Center -->
+      <div style="display:flex; gap:5px; align-items:center; justify-content:center;">
+        <div style="display:flex; border:1px solid #ddd; border-radius:6px; overflow:hidden; flex-shrink:0;">
+          <button id="viewList" title="List view" style="padding:5px 8px; border:none; border-right:1px solid #ddd; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">list</button>
+          <button id="viewCards" title="Cards view" style="padding:5px 8px; border:none; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">cards</button>
+        </div>
+        <button id="unemployedToggleBtn" style="padding:5px 9px; border:1px solid #888; background:#888; color:white; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">unemployed</button>
+      </div>
+      <!-- Right -->
+      <div style="flex:1; display:flex; justify-content:flex-end;">
+      <!-- More dropdown -->
+      <div id="moreMenuWrap" style="position:relative; flex-shrink:0;">
+        <button id="moreMenuBtn" style="padding:5px 9px; border:1px solid #ddd; background:white; border-radius:6px; cursor:pointer; font-size:14px; line-height:1; color:#555;">···</button>
+        <div id="moreMenu" style="display:none; position:absolute; right:0; top:calc(100% + 4px); background:white; border:1px solid #ddd; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.12); min-width:150px; z-index:500; overflow:hidden;">
+          <button id="exportBtn" style="display:flex; align-items:center; gap:8px; width:100%; padding:9px 14px; border:none; background:white; cursor:pointer; font-size:12px; font-family:inherit; text-transform:uppercase; text-align:left; color:#333;">
+            <span style="font-size:15px;">↓</span> Export JSON
+          </button>
+          <label id="importLabel" style="display:flex; align-items:center; gap:8px; width:100%; padding:9px 14px; border:none; background:white; cursor:pointer; font-size:12px; font-family:inherit; text-transform:uppercase; color:#333; border-top:1px solid #f0f0f0;">
+            <span style="font-size:15px;">↑</span> Import JSON
+            <input type="file" id="importFile" accept=".json" style="display:none;" />
+          </label>
+          <button id="pdfBtn" style="display:flex; align-items:center; gap:8px; width:100%; padding:9px 14px; border:none; border-top:1px solid #f0f0f0; background:white; cursor:pointer; font-family:inherit; text-transform:uppercase; text-align:left; color:#c0392b;">
+            <span style="font-size:12px; font-weight:700; flex-shrink:0;">PDF</span>
+            <span style="font-size:10px;">Generate Simple Resume</span>
+          </button>
+          <button id="resetBtn" style="display:flex; align-items:center; gap:8px; width:100%; padding:9px 14px; border:none; border-top:1px solid #f0f0f0; background:white; cursor:pointer; font-size:12px; font-family:inherit; text-transform:uppercase; text-align:left; color:#c33;">
+            <span style="font-size:14px;">✕</span> Reset data
+          </button>
+        </div>
+      </div>
+      </div><!-- end right -->
     </div>
   </div>
 </div>
@@ -136,6 +182,60 @@ function updateFormPlaceholders() {
   const isEdu = cat === 'education';
   document.getElementById('title').placeholder = isEdu ? 'School' : 'Place of employment';
   document.getElementById('subtitle').placeholder = isEdu ? 'Major / Concentration' : 'Job title';
+}
+
+function openAddModal() {
+  document.getElementById('title').value = '';
+  document.getElementById('subtitle').value = '';
+  document.getElementById('startDate').value = '';
+  document.getElementById('endDate').value = '';
+  document.getElementById('category').value = 'broadway';
+  updateFormPlaceholders();
+  document.getElementById('addModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('title').focus(), 50);
+}
+
+function closeAddModal() {
+  document.getElementById('addModal').style.display = 'none';
+}
+
+function confirmAddModal() {
+  const mainVal = document.getElementById('title').value.trim();
+  const subVal = document.getElementById('subtitle').value.trim();
+  const title = subVal ? `${mainVal} (${subVal})` : mainVal;
+  const startDateVal = document.getElementById('startDate').value;
+  const endDateVal = document.getElementById('endDate').value;
+  const category = document.getElementById('category').value;
+  if (!mainVal || (!startDateVal && !endDateVal)) {
+    showMessage('Please fill in title and at least one date', 'error');
+    return;
+  }
+  let year = '';
+  let dateStr = '';
+  if (startDateVal) {
+    const [startYear, startMonth, startDay] = startDateVal.split('-');
+    year = startYear;
+    dateStr = `${startMonth}/${startDay}/${startYear}`;
+  } else if (endDateVal) {
+    const [endYear, endMonth, endDay] = endDateVal.split('-');
+    year = endYear;
+    dateStr = `- ${endMonth}/${endDay}/${endYear}`;
+  }
+  if (endDateVal && startDateVal) {
+    const [endYear, endMonth, endDay] = endDateVal.split('-');
+    dateStr += ` - ${endMonth}/${endDay}/${endYear}`;
+  } else if (endDateVal && !startDateVal) {
+    const [endYear, endMonth, endDay] = endDateVal.split('-');
+    dateStr = `- ${endMonth}/${endDay}/${endYear}`;
+  } else if (startDateVal) {
+    dateStr += ' -';
+  }
+  if (!data[year]) data[year] = [];
+  data[year].push({ title, dates: dateStr, category });
+  saveData();
+  closeAddModal();
+  render();
+  showMessage('Entry added successfully', 'success');
 }
 
 const defaultData = {
@@ -563,48 +663,15 @@ function showMessage(text, type, force) {
   setTimeout(() => { msgDiv.textContent = ''; msgDiv.style.cssText = ''; }, 3000);
 }
 
-document.getElementById('addBtn').addEventListener('click', () => {
-  const mainVal = document.getElementById('title').value.trim();
-  const subVal = document.getElementById('subtitle').value.trim();
-  const title = subVal ? `${mainVal} (${subVal})` : mainVal;
-  const startDateVal = document.getElementById('startDate').value;
-  const endDateVal = document.getElementById('endDate').value;
-  const category = document.getElementById('category').value;
-  if (!mainVal || (!startDateVal && !endDateVal)) {
-    showMessage('Please fill in title and at least one date', 'error');
-    return;
-  }
-  let year = '';
-  let dateStr = '';
-  if (startDateVal) {
-    const [startYear, startMonth, startDay] = startDateVal.split('-');
-    year = startYear;
-    dateStr = `${startMonth}/${startDay}/${startYear}`;
-  } else if (endDateVal) {
-    const [endYear, endMonth, endDay] = endDateVal.split('-');
-    year = endYear;
-    dateStr = `- ${endMonth}/${endDay}/${endYear}`;
-  }
-  if (endDateVal && startDateVal) {
-    const [endYear, endMonth, endDay] = endDateVal.split('-');
-    dateStr += ` - ${endMonth}/${endDay}/${endYear}`;
-  } else if (endDateVal && !startDateVal) {
-    const [endYear, endMonth, endDay] = endDateVal.split('-');
-    dateStr = `- ${endMonth}/${endDay}/${endYear}`;
-  } else if (startDateVal) {
-    dateStr += ' -';
-  }
-  if (!data[year]) data[year] = [];
-  data[year].push({ title, dates: dateStr, category });
-  saveData();
-  document.getElementById('title').value = '';
-  document.getElementById('subtitle').value = '';
-  document.getElementById('startDate').value = '';
-  document.getElementById('endDate').value = '';
-  document.getElementById('category').value = 'broadway';
-  updateFormPlaceholders();
-  render();
-  showMessage('Entry added successfully', 'success');
+document.getElementById('addBtn').addEventListener('click', openAddModal);
+
+document.getElementById('addModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('addModal')) closeAddModal();
+});
+
+document.getElementById('addModal').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') confirmAddModal();
+  if (e.key === 'Escape') closeAddModal();
 });
 
 document.getElementById('resetBtn').addEventListener('click', () => {
@@ -1330,6 +1397,28 @@ document.getElementById('unemployedToggleBtn').addEventListener('click', () => {
 updateViewButtons();
 updateUnemployedToggleBtn();
 render();
+
+// More menu dropdown
+document.getElementById('moreMenuBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const menu = document.getElementById('moreMenu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+});
+document.addEventListener('click', () => {
+  document.getElementById('moreMenu').style.display = 'none';
+});
+document.getElementById('moreMenu').addEventListener('click', (e) => {
+  e.stopPropagation();
+});
+// Close menu after any action inside it
+['exportBtn','pdfBtn','resetBtn'].forEach(id => {
+  document.getElementById(id)?.addEventListener('click', () => {
+    document.getElementById('moreMenu').style.display = 'none';
+  }, true);
+});
+document.getElementById('importFile')?.addEventListener('change', () => {
+  document.getElementById('moreMenu').style.display = 'none';
+});
 </script>
 </body>
 </html>
