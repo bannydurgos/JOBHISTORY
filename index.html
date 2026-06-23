@@ -1141,17 +1141,55 @@ function renderCardsYearDetail() {
   const activeEntries = getActiveEntriesForYear(cardsYear);
   const gapMap = buildGapMap();
 
+  // Build sorted year list (same logic as renderCardsGrid)
+  const allYearsSet2 = new Set(Object.keys(data).map(Number));
+  Object.keys(data).forEach(yearKey => {
+    data[yearKey].forEach(entry => {
+      const dateParts = entry.dates.split('-').map(d => d.trim());
+      const startDate = parseDate(dateParts[0]);
+      const endStr = dateParts.length > 1 ? dateParts[1].trim() : null;
+      const endDate = (endStr && endStr !== '') ? parseDate(endStr) : null;
+      if (startDate && endDate) {
+        for (let y = startDate.getFullYear(); y <= endDate.getFullYear(); y++) allYearsSet2.add(y);
+      }
+    });
+  });
+  const navYears = Array.from(allYearsSet2).sort((a, b) => a - b).filter(y => getActiveEntriesForYear(y).length > 0);
+  const navIdx = navYears.indexOf(cardsYear);
+
   const topBar = document.createElement('div');
-  topBar.style.cssText = 'display:flex; align-items:center; gap:10px; margin-bottom:10px;';
+  topBar.style.cssText = 'position:relative; display:flex; align-items:center; margin-bottom:10px;';
   const backBtn = document.createElement('button');
   backBtn.textContent = '← Back';
   backBtn.style.cssText = 'padding:5px 10px; border:1px solid #ddd; background:white; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; color:#555; font-family:inherit; text-transform:uppercase; letter-spacing:0.3px;';
   backBtn.addEventListener('click', () => { cardsPage = 'grid'; cardsYear = null; renderCardsView(); });
+
+  const centerGroup = document.createElement('div');
+  centerGroup.style.cssText = 'position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:6px;';
+
+  const prevBtn = document.createElement('button');
+  prevBtn.textContent = '‹';
+  prevBtn.title = navIdx > 0 ? String(navYears[navIdx - 1]) : '';
+  prevBtn.disabled = navIdx <= 0;
+  prevBtn.style.cssText = `padding:4px 10px; border:1px solid #ddd; background:white; border-radius:6px; cursor:${navIdx <= 0 ? 'default' : 'pointer'}; font-size:16px; color:${navIdx <= 0 ? '#ccc' : '#555'}; line-height:1; font-family:inherit;`;
+  prevBtn.addEventListener('click', () => { if (navIdx > 0) { cardsYear = navYears[navIdx - 1]; renderCardsYearDetail(); } });
+
   const yearTitle = document.createElement('div');
-  yearTitle.style.cssText = 'font-size:18px; font-weight:700; color:#333;';
+  yearTitle.style.cssText = 'font-size:18px; font-weight:700; color:#333; min-width:52px; text-align:center;';
   yearTitle.textContent = cardsYear;
+
+  const nextBtn = document.createElement('button');
+  nextBtn.textContent = '›';
+  nextBtn.title = navIdx < navYears.length - 1 ? String(navYears[navIdx + 1]) : '';
+  nextBtn.disabled = navIdx >= navYears.length - 1;
+  nextBtn.style.cssText = `padding:4px 10px; border:1px solid #ddd; background:white; border-radius:6px; cursor:${navIdx >= navYears.length - 1 ? 'default' : 'pointer'}; font-size:16px; color:${navIdx >= navYears.length - 1 ? '#ccc' : '#555'}; line-height:1; font-family:inherit;`;
+  nextBtn.addEventListener('click', () => { if (navIdx < navYears.length - 1) { cardsYear = navYears[navIdx + 1]; renderCardsYearDetail(); } });
+
+  centerGroup.appendChild(prevBtn);
+  centerGroup.appendChild(yearTitle);
+  centerGroup.appendChild(nextBtn);
   topBar.appendChild(backBtn);
-  topBar.appendChild(yearTitle);
+  topBar.appendChild(centerGroup);
   timeline.appendChild(topBar);
 
   const body = document.createElement('div');
