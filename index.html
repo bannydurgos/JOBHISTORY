@@ -111,6 +111,7 @@
         <button id="viewList" title="List view" style="padding:5px 8px; border:none; border-right:1px solid #ddd; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">list</button>
         <button id="viewCards" title="Cards view" style="padding:5px 8px; border:none; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">cards</button>
       </div>
+      <button id="unemployedToggleBtn" style="padding:5px 9px; border:1px solid #888; background:#888; color:white; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">unemployed</button>
       <button id="resetBtn" style="padding: 5px 9px; border: 1px solid #ffcccc; background: white; border-radius: 6px; cursor: pointer; font-size: 16px; color: #c33; line-height: 1;">✕</button>
     </div>
   </div>
@@ -159,6 +160,7 @@ let currentView = (['timeline','cards'].includes(localStorage.getItem('view_mode
 let expandedCards = new Set();
 let cardsPage = 'grid';
 let cardsYear = null;
+let showUnemployed = true;
 
 const colors = { broadway: '#D4537E', education: '#378ADD', healthcare: '#1D9E75', unemployed: '#888888', other: '#7F77DD' };
 
@@ -313,7 +315,7 @@ function renderTimeline() {
 
   Array.from(allYears).sort((a, b) => a - b).forEach(year => {
     const yearStr = String(year);
-    const yearEntries = (data[yearStr] || []).filter(entry => activeFilter === 'all' || entry.category === activeFilter);
+    const yearEntries = (data[yearStr] || []).filter(entry => (activeFilter === 'all' || entry.category === activeFilter) && (showUnemployed || entry.category !== 'unemployed'));
 
     // Find entries from prior years with explicit end dates reaching into this year
     const continuations = [];
@@ -1100,7 +1102,7 @@ function renderCardsGrid() {
   grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px;';
 
   allYears.forEach(year => {
-    const activeEntries = getActiveEntriesForYear(year);
+    const activeEntries = getActiveEntriesForYear(year).filter(({entry}) => showUnemployed || entry.category !== 'unemployed');
     if (activeEntries.length === 0) return;
 
     const presentCats = [...new Set(activeEntries.map(({entry}) => entry.category))].filter(c => c !== 'unemployed');
@@ -1138,7 +1140,7 @@ function renderCardsYearDetail() {
   Object.keys(_durMap).forEach(k => delete _durMap[k]);
 
   const yearStr = String(cardsYear);
-  const activeEntries = getActiveEntriesForYear(cardsYear);
+  const activeEntries = getActiveEntriesForYear(cardsYear).filter(({entry}) => showUnemployed || entry.category !== 'unemployed');
   const gapMap = buildGapMap();
 
   // Build sorted year list (same logic as renderCardsGrid)
@@ -1311,7 +1313,22 @@ function updateViewButtons() {
   });
 });
 
+function updateUnemployedToggleBtn() {
+  const btn = document.getElementById('unemployedToggleBtn');
+  if (!btn) return;
+  btn.style.background = showUnemployed ? '#888' : 'white';
+  btn.style.color = showUnemployed ? 'white' : '#888';
+  btn.style.border = showUnemployed ? '1px solid #888' : '1px solid #ddd';
+}
+
+document.getElementById('unemployedToggleBtn').addEventListener('click', () => {
+  showUnemployed = !showUnemployed;
+  updateUnemployedToggleBtn();
+  render();
+});
+
 updateViewButtons();
+updateUnemployedToggleBtn();
 render();
 </script>
 </body>
