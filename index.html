@@ -95,7 +95,6 @@
       <option value="broadway">Broadway & Theatre</option>
       <option value="education">Education</option>
       <option value="healthcare">Healthcare</option>
-      <option value="fitness">Fitness</option>
       <option value="unemployed">Unemployed</option>
       <option value="other">Other</option>
     </select>
@@ -108,6 +107,10 @@
       <button id="exportBtn" style="padding: 5px 9px; background: #378ADD; border: 1px solid #378ADD; color: white; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 400; line-height: 1;">↓</button>
       <label style="padding: 5px 9px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 16px; line-height: 1;">↑<input type="file" id="importFile" accept=".json" style="display:none;" /></label>
       <button id="pdfBtn" style="padding: 5px 9px; background: #c0392b; border: 1px solid #c0392b; color: white; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; line-height: 1; letter-spacing: 0.5px;">PDF</button>
+      <div style="display:flex; border:1px solid #ddd; border-radius:6px; overflow:hidden; flex-shrink:0;">
+        <button id="viewList" title="List view" style="padding:5px 8px; border:none; border-right:1px solid #ddd; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">list</button>
+        <button id="viewCards" title="Cards view" style="padding:5px 8px; border:none; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">cards</button>
+      </div>
       <button id="resetBtn" style="padding: 5px 9px; border: 1px solid #ffcccc; background: white; border-radius: 6px; cursor: pointer; font-size: 16px; color: #c33; line-height: 1;">✕</button>
     </div>
   </div>
@@ -119,8 +122,8 @@
   <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #D4537E;"></div> <span>Broadway & Theatre</span></div>
   <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #378ADD;"></div> <span>Education</span></div>
   <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #1D9E75;"></div> <span>Healthcare</span></div>
-  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #BA7517;"></div> <span>Fitness</span></div>
-  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #7F77DD;"></div> <span>Unemployed</span></div>
+  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #7F77DD;"></div> <span>Other</span></div>
+  <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #888888;"></div> <span>Unemployed</span></div>
 </div>
 </div>
 
@@ -152,8 +155,12 @@ let data = loadData();
 let activeFilter = 'all';
 let editingEntry = null;
 let collapsedYears = new Set(JSON.parse(localStorage.getItem('collapsed_years') || '[]'));
+let currentView = (['timeline','cards'].includes(localStorage.getItem('view_mode')) ? localStorage.getItem('view_mode') : 'timeline');
+let expandedCards = new Set();
+let cardsPage = 'grid';
+let cardsYear = null;
 
-const colors = { broadway: '#D4537E', education: '#378ADD', healthcare: '#1D9E75', fitness: '#BA7517', unemployed: '#7F77DD', other: '#888780' };
+const colors = { broadway: '#D4537E', education: '#378ADD', healthcare: '#1D9E75', unemployed: '#888888', other: '#7F77DD' };
 
 function loadData() {
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -265,8 +272,8 @@ function buildGapMap() {
 function renderFilters() {
   const container = document.getElementById('filters');
   container.innerHTML = '';
-  const cats = ['all', 'broadway', 'education', 'healthcare', 'fitness', 'unemployed'];
-  const labels = { all: 'All', broadway: 'Broadway & Theatre', education: 'Education', healthcare: 'Healthcare', fitness: 'Fitness', unemployed: 'Unemployed' };
+  const cats = ['all', 'broadway', 'education', 'healthcare', 'unemployed', 'other'];
+  const labels = { all: 'All', broadway: 'Broadway & Theatre', education: 'Education', healthcare: 'Healthcare', unemployed: 'Unemployed', other: 'Other' };
   cats.forEach(cat => {
     const btn = document.createElement('button');
     btn.textContent = labels[cat];
@@ -276,7 +283,7 @@ function renderFilters() {
       document.querySelectorAll('#filters button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeFilter = cat;
-      renderTimeline();
+      render();
     });
     container.appendChild(btn);
   });
@@ -413,7 +420,6 @@ function renderTimeline() {
                 <option value="broadway" ${entry.category === 'broadway' ? 'selected' : ''}>Broadway & Theatre</option>
                 <option value="education" ${entry.category === 'education' ? 'selected' : ''}>Education</option>
                 <option value="healthcare" ${entry.category === 'healthcare' ? 'selected' : ''}>Healthcare</option>
-                <option value="fitness" ${entry.category === 'fitness' ? 'selected' : ''}>Fitness</option>
                 <option value="unemployed" ${entry.category === 'unemployed' ? 'selected' : ''}>Unemployed</option>
                 <option value="other" ${entry.category === 'other' ? 'selected' : ''}>Other</option>
               </select>
@@ -477,12 +483,13 @@ function renderTimeline() {
 
 function startEdit(year, index) {
   editingEntry = { year, index };
-  renderTimeline();
+  if (currentView === 'cards') { cardsYear = Number(year); cardsPage = 'year'; }
+  render();
 }
 
 function cancelEdit() {
   editingEntry = null;
-  renderTimeline();
+  render();
 }
 
 function saveEdit(year, index) {
@@ -514,7 +521,7 @@ function saveEdit(year, index) {
   data[year][index] = { title: newTitle, dates: dateStr, category: newCategory };
   saveData();
   editingEntry = null;
-  renderTimeline();
+  render();
   showMessage('Entry updated', 'success');
 }
 
@@ -542,7 +549,7 @@ function deleteEntry(year, index) {
   data[year].splice(index, 1);
   if (data[year].length === 0) delete data[year];
   saveData();
-  renderTimeline();
+  render();
   showMessage('Entry deleted', 'success');
 }
 
@@ -594,7 +601,7 @@ document.getElementById('addBtn').addEventListener('click', () => {
   document.getElementById('endDate').value = '';
   document.getElementById('category').value = 'broadway';
   updateFormPlaceholders();
-  renderTimeline();
+  render();
   showMessage('Entry added successfully', 'success');
 });
 
@@ -603,7 +610,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
     data = loadData();
     editingEntry = null;
-    renderTimeline();
+    render();
     showMessage('Data reset to default', 'success');
   }
 });
@@ -627,7 +634,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
       data = JSON.parse(ev.target.result);
       saveData();
       editingEntry = null;
-      renderTimeline();
+      render();
       showMessage('Data loaded successfully', 'success', true);
     } catch {
       showMessage('Invalid file — could not load data', 'error');
@@ -736,7 +743,7 @@ function confirmGapModal() {
   data[year].push({ title: 'Unemployed', dates: dateStr, category: 'unemployed' });
   saveData();
   closeGapModal();
-  renderTimeline();
+  render();
   showMessage('Unemployment period added', 'success', true);
 }
 
@@ -768,7 +775,7 @@ const categoryLabels = {
   other: 'Other'
 };
 
-let pdfSectionOrder = ['healthcare', 'broadway', 'other', 'education', 'fitness'];
+let pdfSectionOrder = ['healthcare', 'broadway', 'other', 'education'];
 let pdfSectionEnabled = {};
 let pdfEntryEnabled = {};
 let pdfSectionExpanded = {};
@@ -1038,7 +1045,236 @@ function generateResumePDF(categoryOrder, includeUnemployed, chronological, reve
   win.addEventListener('load', () => win.print());
 }
 
-renderTimeline();
+function render() {
+  if (currentView === 'cards') renderCardsView();
+  else renderTimeline();
+}
+
+function renderCardsView() {
+  if (cardsPage === 'year') renderCardsYearDetail();
+  else renderCardsGrid();
+}
+
+function getActiveEntriesForYear(year) {
+  const result = [];
+  Object.keys(data).forEach(yearKey => {
+    data[yearKey].forEach((entry, idx) => {
+      const dateParts = entry.dates.split('-').map(d => d.trim());
+      const startDate = parseDate(dateParts[0]);
+      const endStr = dateParts.length > 1 ? dateParts[1].trim() : null;
+      const endDate = (endStr && endStr !== '') ? parseDate(endStr) : null;
+      const sy = startDate ? startDate.getFullYear() : null;
+      const ey = endDate ? endDate.getFullYear() : null;
+      if (sy === year || (sy && ey && sy < year && ey >= year)) {
+        result.push({ entry, yearKey, idx });
+      }
+    });
+  });
+  result.sort((a, b) => {
+    const aStart = parseDate(a.entry.dates.split('-')[0].trim()) || new Date(0);
+    const bStart = parseDate(b.entry.dates.split('-')[0].trim()) || new Date(0);
+    return aStart - bStart;
+  });
+  return result;
+}
+
+function renderCardsGrid() {
+  const timeline = document.getElementById('timeline');
+  timeline.innerHTML = '';
+  Object.keys(_durMap).forEach(k => delete _durMap[k]);
+  const allYearsSet = new Set(Object.keys(data).map(Number));
+  Object.keys(data).forEach(yearKey => {
+    data[yearKey].forEach(entry => {
+      const dateParts = entry.dates.split('-').map(d => d.trim());
+      const startDate = parseDate(dateParts[0]);
+      const endStr = dateParts.length > 1 ? dateParts[1].trim() : null;
+      const endDate = (endStr && endStr !== '') ? parseDate(endStr) : null;
+      if (startDate && endDate) {
+        for (let y = startDate.getFullYear(); y <= endDate.getFullYear(); y++) allYearsSet.add(y);
+      }
+    });
+  });
+  const allYears = Array.from(allYearsSet).sort((a, b) => a - b);
+
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px;';
+
+  allYears.forEach(year => {
+    const activeEntries = getActiveEntriesForYear(year);
+    if (activeEntries.length === 0) return;
+
+    const presentCats = [...new Set(activeEntries.map(({entry}) => entry.category))].filter(c => c !== 'unemployed');
+    const hasUnemployedOnly = presentCats.length === 0;
+
+    const card = document.createElement('div');
+    card.style.cssText = 'aspect-ratio:1; background:white; border:1px solid #e0e0e0; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,0.06); cursor:pointer; user-select:none; transition:box-shadow 0.15s, transform 0.1s;';
+
+    const yearLabel = document.createElement('div');
+    yearLabel.style.cssText = 'font-size:18px; font-weight:700; color:#333; line-height:1;';
+    yearLabel.textContent = year;
+
+    const dots = document.createElement('div');
+    dots.style.cssText = 'display:flex; gap:3px; flex-wrap:wrap; justify-content:center;';
+    (hasUnemployedOnly ? ['unemployed'] : presentCats).forEach(cat => {
+      const dot = document.createElement('div');
+      dot.style.cssText = `width:8px; height:8px; border-radius:2px; background:${colors[cat]||colors.other};`;
+      dots.appendChild(dot);
+    });
+
+    card.appendChild(yearLabel);
+    card.appendChild(dots);
+    card.addEventListener('mouseenter', () => { card.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)'; card.style.transform='translateY(-2px)'; });
+    card.addEventListener('mouseleave', () => { card.style.boxShadow='0 1px 3px rgba(0,0,0,0.06)'; card.style.transform=''; });
+    card.addEventListener('click', () => { cardsYear = year; cardsPage = 'year'; renderCardsView(); });
+    grid.appendChild(card);
+  });
+
+  timeline.appendChild(grid);
+}
+
+function renderCardsYearDetail() {
+  const timeline = document.getElementById('timeline');
+  timeline.innerHTML = '';
+  Object.keys(_durMap).forEach(k => delete _durMap[k]);
+
+  const yearStr = String(cardsYear);
+  const activeEntries = getActiveEntriesForYear(cardsYear);
+  const gapMap = buildGapMap();
+
+  const topBar = document.createElement('div');
+  topBar.style.cssText = 'display:flex; align-items:center; gap:10px; margin-bottom:10px;';
+  const backBtn = document.createElement('button');
+  backBtn.textContent = '← Back';
+  backBtn.style.cssText = 'padding:5px 10px; border:1px solid #ddd; background:white; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; color:#555; font-family:inherit; text-transform:uppercase; letter-spacing:0.3px;';
+  backBtn.addEventListener('click', () => { cardsPage = 'grid'; cardsYear = null; renderCardsView(); });
+  const yearTitle = document.createElement('div');
+  yearTitle.style.cssText = 'font-size:18px; font-weight:700; color:#333;';
+  yearTitle.textContent = cardsYear;
+  topBar.appendChild(backBtn);
+  topBar.appendChild(yearTitle);
+  timeline.appendChild(topBar);
+
+  const body = document.createElement('div');
+  body.style.cssText = 'display:flex; flex-direction:column; gap:4px;';
+
+  activeEntries.forEach(({ entry, yearKey, idx }) => {
+    const isEditing = editingEntry && editingEntry.year === yearKey && editingEntry.index === idx;
+    const gapKey = `${yearKey}-${idx}`;
+    const gap = gapMap[gapKey];
+    const color = colors[entry.category] || colors.other;
+    const durId = `cardyr-${yearKey}-${idx}`;
+    _durMap[durId] = entry.dates;
+
+    const entryDiv = document.createElement('div');
+    entryDiv.style.cssText = `display:flex; align-items:flex-start; border-left:3px solid ${color}; background:${color}45; border-radius:0 6px 6px 0; padding:4px 8px;`;
+    const content = document.createElement('div');
+    content.style.cssText = 'flex:1;';
+
+    if (isEditing) {
+      const dateParts = entry.dates.split('-').map(d => d.trim());
+      const startDate = parseDate(dateParts[0]);
+      const endDate = dateParts.length > 1 && dateParts[1] !== '' ? parseDate(dateParts[1]) : null;
+      const parenIdxE = entry.title.indexOf('(');
+      const editMain = parenIdxE > -1 ? entry.title.slice(0, parenIdxE).trim() : entry.title;
+      const editSub = parenIdxE > -1 ? entry.title.slice(parenIdxE + 1).replace(/\)$/, '').trim() : '';
+      const isEdu = entry.category === 'education';
+      content.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:4px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:6px;">
+            <input type="text" id="edit-title-${idx}" value="${editMain}" placeholder="${isEdu?'School':'Place of employment'}" style="padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;" />
+            <input type="text" id="edit-subtitle-${idx}" value="${editSub}" placeholder="${isEdu?'Major / Concentration':'Job title'}" style="padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;" />
+            <div style="display:flex;gap:5px;">
+              <button id="save-${idx}" style="padding:5px 10px;background:#4CAF50;border:1px solid #4CAF50;color:white;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;">Save</button>
+              <button id="cancel-${idx}" style="padding:5px 10px;border:1px solid #ddd;background:white;border-radius:6px;cursor:pointer;font-size:12px;">Cancel</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+            <input type="date" id="edit-start-${idx}" value="${startDate?dateObjToString(startDate):''}" style="padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;" />
+            <input type="date" id="edit-end-${idx}" value="${endDate?dateObjToString(endDate):''}" style="padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;" />
+            <select id="edit-category-${idx}" style="padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+              <option value="broadway" ${entry.category==='broadway'?'selected':''}>Broadway & Theatre</option>
+              <option value="education" ${entry.category==='education'?'selected':''}>Education</option>
+              <option value="healthcare" ${entry.category==='healthcare'?'selected':''}>Healthcare</option>
+              <option value="unemployed" ${entry.category==='unemployed'?'selected':''}>Unemployed</option>
+              <option value="other" ${entry.category==='other'?'selected':''}>Other</option>
+            </select>
+          </div>
+        </div>`;
+      setTimeout(() => {
+        document.getElementById(`save-${idx}`)?.addEventListener('click', () => saveEdit(yearKey, idx));
+        document.getElementById(`cancel-${idx}`)?.addEventListener('click', cancelEdit);
+      }, 0);
+    } else {
+      const headerDiv = document.createElement('div');
+      headerDiv.style.cssText = 'display:flex;align-items:center;gap:8px;';
+      const parenIdx = entry.title.indexOf('(');
+      const mainTitle = parenIdx > -1 ? entry.title.slice(0, parenIdx).trim() : entry.title;
+      const subTitle = parenIdx > -1 ? entry.title.slice(parenIdx + 1).replace(/\)$/, '').trim() : null;
+      const titleSpan = document.createElement('div');
+      titleSpan.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
+      titleSpan.title = 'Click to see duration · Double-click to edit';
+      titleSpan.innerHTML = `<span style="font-size:13px;color:#333;font-weight:bold;display:block;">${mainTitle}</span>${subTitle?`<span style="font-size:11px;color:#666;display:block;">${subTitle}</span>`:''}`;
+      titleSpan.addEventListener('click', (e) => toggleDuration(durId, e));
+      const dateSpan = document.createElement('span');
+      dateSpan.style.cssText = 'font-size:11px;color:#666;cursor:pointer;flex:0 0 240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-top:1px;';
+      dateSpan.title = 'Click to see duration';
+      dateSpan.textContent = formatDisplayDates(entry.dates);
+      dateSpan.addEventListener('click', (e) => toggleDuration(durId, e));
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '✕';
+      deleteBtn.title = 'Delete';
+      deleteBtn.style.cssText = 'padding:2px 6px;font-size:11px;border:1px solid #ffcccc;color:#c33;background:transparent;border-radius:6px;cursor:pointer;line-height:1;flex-shrink:0;margin-top:1px;';
+      deleteBtn.addEventListener('click', () => openDeleteConfirm(yearKey, idx));
+      entryDiv.addEventListener('dblclick', () => startEdit(yearKey, idx));
+      headerDiv.appendChild(titleSpan);
+      headerDiv.appendChild(dateSpan);
+      headerDiv.appendChild(deleteBtn);
+      content.appendChild(headerDiv);
+    }
+
+    entryDiv.appendChild(content);
+    body.appendChild(entryDiv);
+
+    if (gap && activeFilter === 'all' && !isEditing) {
+      const gapDiv = document.createElement('div');
+      gapDiv.style.cssText = 'display:flex;gap:6px;padding:3px 8px;background:#fffbf0;border-radius:6px;font-size:11px;color:#d97706;margin-left:3px;cursor:pointer;';
+      gapDiv.title = 'Click to add unemployment period';
+      gapDiv.innerHTML = `<div style="width:4px;height:4px;border-radius:50%;background:#d97706;flex-shrink:0;margin-top:4px;"></div><span><strong>Gap:</strong> ${gap.days} day${gap.days===1?'':'s'} until ${gap.nextTitle}</span>`;
+      gapDiv.addEventListener('mouseenter', () => { gapDiv.style.background='#fff3d0'; });
+      gapDiv.addEventListener('mouseleave', () => { gapDiv.style.background='#fffbf0'; });
+      gapDiv.addEventListener('click', () => openGapModal(gap));
+      body.appendChild(gapDiv);
+    }
+  });
+
+  timeline.appendChild(body);
+}
+
+function updateViewButtons() {
+  const views = ['timeline', 'cards'];
+  const ids = ['viewList', 'viewCards'];
+  ids.forEach((id, i) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const active = views[i] === currentView;
+    btn.style.background = active ? '#333' : 'white';
+    btn.style.color = active ? 'white' : '#555';
+  });
+}
+
+['viewList', 'viewCards'].forEach((id, i) => {
+  const views = ['timeline', 'cards'];
+  document.getElementById(id)?.addEventListener('click', () => {
+    currentView = views[i];
+    if (currentView !== 'cards') { cardsPage = 'grid'; cardsYear = null; }
+    localStorage.setItem('view_mode', currentView);
+    updateViewButtons();
+    render();
+  });
+});
+
+updateViewButtons();
+render();
 </script>
 </body>
 </html>
