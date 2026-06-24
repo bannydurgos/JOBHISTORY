@@ -1172,7 +1172,7 @@ function renderCardsGrid() {
     const activeEntries = getActiveEntriesForYear(year).filter(({entry}) => showUnemployed || entry.category !== 'unemployed');
     if (activeEntries.length === 0) return;
 
-    const presentCats = [...new Set(activeEntries.map(({entry}) => entry.category))].filter(c => c !== 'unemployed');
+    const presentCats = [...new Set(activeEntries.map(({entry}) => entry.category))].filter(c => showUnemployed ? true : c !== 'unemployed');
     const hasUnemployedOnly = presentCats.length === 0;
 
     const card = document.createElement('div');
